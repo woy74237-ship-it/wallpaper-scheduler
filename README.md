@@ -9,6 +9,11 @@
 `WallpaperScheduler-v〇.〇.〇.zip` を展開して `WallpaperScheduler.exe` を起動するだけで使えます（インストール不要・Windows 10 / 11 対応）。
 初回起動時に「Windows によって PC が保護されました」と表示された場合は、「詳細情報」→「実行」で起動できます。
 
+## 開発の支援
+
+無料でお使いいただけます。気に入っていただけたら、[OFUSE](https://ofuse.me/c0fdccc4) から応援していただけるとうれしいです。
+「こんな機能がほしい」といった要望も、[Issues](https://github.com/woy74237-ship-it/wallpaper-scheduler/issues) でお待ちしています。
+
 ## ビルド
 
 追加のインストールは不要です（Windows 標準の .NET Framework 4.x の `csc.exe` を使用）。
@@ -73,6 +78,7 @@
 
 ## バージョン
 
+- v1.3: 「このアプリについて」画面と開発の支援リンクを追加
 - v1.2: 配布の仕上げ（専用アイコン、バージョン情報、マニフェスト、配布用 ZIP スクリプト）
 - v1.1: UI を刷新（Windows 11 風デザイン、ダークモード、タイムライン、サムネイル付きカード）
 - v1.0: 最初のバージョン（`git checkout v1.0` で取り出せます）

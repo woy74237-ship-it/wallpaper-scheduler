@@ -12,7 +12,23 @@ class MakeIcon
 {
     static void Main(string[] args)
     {
-        if (args.Length < 1) { Console.Error.WriteLine("usage: MakeIcon <out.ico> [preview.png]"); Environment.Exit(1); }
+        if (args.Length < 1) { Console.Error.WriteLine("usage: MakeIcon <out.ico> [preview.png] | MakeIcon --avatar <out.png> [size]"); Environment.Exit(1); }
+        if (args[0] == "--avatar")
+        {
+            // SNS・支援サービスのプロフィール用。丸く切り抜かれても欠けないよう、全面に描いて時計を内側に寄せる
+            int size = args.Length > 2 ? int.Parse(args[2]) : 512;
+            using (var bmp = DrawScene(size))
+            {
+                using (var g = Graphics.FromImage(bmp))
+                {
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    DrawClockBadge(g, size, 0.34f, 0.65f, 0.16f);
+                }
+                bmp.Save(args[1], ImageFormat.Png);
+            }
+            return;
+        }
         int[] sizes = { 16, 20, 24, 32, 40, 48, 64, 256 };
         var images = new List<byte[]>();
         foreach (int s in sizes)
@@ -129,7 +145,12 @@ class MakeIcon
 
     static void DrawClockBadge(Graphics g, int s)
     {
-        float cx = s * 0.75f, cy = s * 0.75f, r = s * 0.21f;
+        DrawClockBadge(g, s, 0.75f, 0.75f, 0.21f);
+    }
+
+    static void DrawClockBadge(Graphics g, int s, float x, float y, float radius)
+    {
+        float cx = s * x, cy = s * y, r = s * radius;
         using (var shadow = new SolidBrush(Color.FromArgb(70, 0, 0, 0)))
             g.FillEllipse(shadow, cx - r - s * 0.01f, cy - r + s * 0.015f, (r + s * 0.01f) * 2, (r + s * 0.01f) * 2);
         g.FillEllipse(Brushes.White, cx - r, cy - r, r * 2, r * 2);
