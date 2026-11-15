@@ -9,6 +9,6 @@ New-Item -ItemType Directory -Force $out | Out-Null
 & $csc /nologo /target:winexe /codepage:65001 /optimize+ `
     "/out:$out\WallpaperScheduler.exe" `
     /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Runtime.Serialization.dll /r:System.Core.dll `
-    (Join-Path $PSScriptRoot 'src\WallpaperScheduler.cs')
+    (Get-ChildItem (Join-Path $PSScriptRoot 'src') -Filter *.cs).FullName
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host "ビルド完了: $out\WallpaperScheduler.exe"
