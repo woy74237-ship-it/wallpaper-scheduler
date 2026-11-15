@@ -38,13 +38,26 @@
 
 `dist\WallpaperScheduler-v<バージョン>.zip`（exe と利用者向けの `README.txt`）と、
 改ざん確認用の `.zip.sha256` が生成されます。
+作成した ZIP は Microsoft Defender で自動的にスキャンし、検出された場合は ZIP を削除して中止します
+（スキャン単体でも `.\tools\scan-file.ps1 <ファイル>` で実行できます）。
 
 リリースの手順:
 
 1. `src/Core.cs` 先頭のバージョン（3 か所）を上げる
    - 支援ページ・公式ページの URL も同じファイルの `AppInfo.SupportUrl` / `WebsiteUrl` で設定します（空欄ならボタン非表示）
-2. `.\package.ps1` を実行
-3. コミットしてタグを付ける（例: `git tag v1.3`）
+2. `.\package.ps1` を実行（Defender のスキャンで検出されたら公開しない）
+3. コミットしてタグを付け、GitHub に push する（例: `git tag v1.3.2`）
+4. **プレリリースとして** Release を作る（`gh release create ... --prerelease`。最新版にはならない）
+5. **自分の PC で実際に試す**
+   - Release のページから ZIP をダウンロード → 展開 → 起動（Defender の警告が出ないか）
+   - 自動起動などの変更点も確認（必要なら PC を再起動）
+6. 問題がなければ、最新版に切り替える（`gh release edit <タグ> --prerelease=false --latest`）
+
+> ローカルのスキャンは「既に判定済みのファイル」しか検出できないことがあります。
+> 新しく作ったファイルは、ダウンロードや実行のときに初めてクラウドで判定されるため、
+> 手順 5 の「実際にダウンロードして試す」を省略しないこと。
+> 問題が見つかったら、Release を下書きに戻し（`gh release edit <タグ> --draft=true`）、
+> 前のバージョンを最新版に戻す（`gh release edit <前のタグ> --latest`）。
 
 アイコンのデザインを変えたときは `tools/MakeIcon.cs` を編集し、`.\tools\make-icon.ps1` で
 `assets/app.ico` を再生成します。支援ページや SNS 用の画像（プロフィール・カバー・OGP）は
