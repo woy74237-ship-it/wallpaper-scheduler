@@ -19,7 +19,8 @@ namespace WallpaperScheduler
         MainForm form;
         string lastAppliedKey;
 
-        public TrayApp()
+        /// launchedAtStartup: Windows の自動起動で起動されたとき true（設定画面を開かずにトレイに常駐）
+        public TrayApp(bool launchedAtStartup)
         {
             settings = Settings.Load();
             // exe を移動・削除して自動起動の登録先が無くなっていたら、今の exe に登録し直す
@@ -59,7 +60,9 @@ namespace WallpaperScheduler
             SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 
             Check(false);
-            if (settings.Entries.Count == 0) ShowSettings();
+            // 手動で起動したとき（exe のダブルクリックなど）は、起動したことがわかるよう設定画面を開く。
+            // 自動起動のときは、スケジュールが未登録の場合だけ開く
+            if (!launchedAtStartup || settings.Entries.Count == 0) ShowSettings();
         }
 
         // ---- システムイベント ----
@@ -211,7 +214,7 @@ namespace WallpaperScheduler
     static class Program
     {
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             bool createdNew;
             using (var mutex = new Mutex(true, @"Local\WallpaperScheduler.SingleInstance", out createdNew))
@@ -227,7 +230,7 @@ namespace WallpaperScheduler
                 Application.EnableVisualStyles();   // 高 DPI 対応は assets\app.manifest で宣言
                 Application.SetCompatibleTextRenderingDefault(false);
                 Theme.Init();
-                var app = new TrayApp();
+                var app = new TrayApp(Startup.IsAutostartLaunch(args));
                 var wait = ThreadPool.RegisterWaitForSingleObject(showEvent, delegate { app.RequestShow(); }, null, -1, false);
                 Application.Run(app);
                 wait.Unregister(null);

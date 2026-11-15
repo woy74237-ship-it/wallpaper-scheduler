@@ -15,9 +15,9 @@ using Microsoft.Win32;
 [assembly: System.Reflection.AssemblyTitle("壁紙スケジューラ")]
 [assembly: System.Reflection.AssemblyDescription("指定した時刻に Windows の壁紙を切り替えるアプリ")]
 [assembly: System.Reflection.AssemblyProduct("壁紙スケジューラ")]
-[assembly: System.Reflection.AssemblyVersion("1.3.1.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.3.1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.3.1")]
+[assembly: System.Reflection.AssemblyVersion("1.3.2.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.3.2.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.3.2")]
 
 namespace WallpaperScheduler
 {
@@ -218,34 +218,63 @@ namespace WallpaperScheduler
                 return k != null && k.GetValue(ValueName) != null;
         }
 
+        /// 自動起動で起動されたことを示す引数（このときは設定画面を開かずにトレイに常駐する）
+        public const string AutostartArg = "--autostart";
+
+        public static bool IsAutostartLaunch(string[] args)
+        {
+            return args != null && args.Any(a => string.Equals(a, AutostartArg, StringComparison.OrdinalIgnoreCase));
+        }
+
         public static void SetEnabled(bool enabled)
         {
             using (var k = Registry.CurrentUser.CreateSubKey(RunKey))
             {
-                if (enabled) k.SetValue(ValueName, "\"" + Application.ExecutablePath + "\"");
+                if (enabled) k.SetValue(ValueName, "\"" + Application.ExecutablePath + "\" " + AutostartArg);
                 else k.DeleteValue(ValueName, false);
             }
         }
 
-        /// 登録されている exe のパス（未登録なら null）
-        public static string RegisteredPath()
+        static string RegisteredValue()
         {
             using (var k = Registry.CurrentUser.OpenSubKey(RunKey))
             {
                 var v = k == null ? null : k.GetValue(ValueName) as string;
-                return string.IsNullOrWhiteSpace(v) ? null : v.Trim().Trim('"');
+                return string.IsNullOrWhiteSpace(v) ? null : v.Trim();
             }
         }
 
-        /// 自動起動がオンなのに、登録先の exe が移動・削除されて存在しない場合は、
-        /// 今動いている exe に登録し直す（別の場所にある有効な exe の登録は変えない）
+        /// 登録されている exe のパス（未登録なら null）。"C:\...\x.exe" --autostart の形から取り出す
+        public static string RegisteredPath()
+        {
+            string v = RegisteredValue();
+            if (v == null) return null;
+            if (v.StartsWith("\""))
+            {
+                int end = v.IndexOf('"', 1);
+                return end > 1 ? v.Substring(1, end - 1) : v.Trim('"');
+            }
+            return v;
+        }
+
+        /// 自動起動の登録を直す
+        /// ・登録先の exe が移動・削除されて存在しない → 今動いている exe に登録し直す
+        /// ・今の exe を指しているが、古い形式（--autostart なし）→ 新しい形式に更新する
+        /// 別の場所にある有効な exe の登録は変えない
         public static bool RepairIfBroken()
         {
+            string raw = RegisteredValue();
             string path = RegisteredPath();
-            if (path == null) return false;
-            try { if (File.Exists(path)) return false; } catch { }
-            SetEnabled(true);
-            return true;
+            if (raw == null || path == null) return false;
+
+            bool exists = false;
+            try { exists = File.Exists(path); } catch { }
+            if (!exists) { SetEnabled(true); return true; }
+
+            bool isThisExe = false;
+            try { isThisExe = string.Equals(Path.GetFullPath(path), Path.GetFullPath(Application.ExecutablePath), StringComparison.OrdinalIgnoreCase); } catch { }
+            if (isThisExe && raw.IndexOf(AutostartArg, StringComparison.OrdinalIgnoreCase) < 0) { SetEnabled(true); return true; }
+            return false;
         }
     }
 }
