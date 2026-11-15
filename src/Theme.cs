@@ -23,7 +23,8 @@ namespace WallpaperScheduler
     static class Glyphs
     {
         public const string Add = "", Edit = "", Delete = "", ChevronDown = "", ChevronUp = "",
-            Photo = "", Warning = "", Check = "", Refresh = "";
+            Photo = "", Warning = "", Check = "", Refresh = "",
+            Info = "", Heart = "", OpenInNew = "";
     }
 
     static class Theme

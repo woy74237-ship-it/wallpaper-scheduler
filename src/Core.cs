@@ -21,6 +21,41 @@ using Microsoft.Win32;
 
 namespace WallpaperScheduler
 {
+    /// アプリ情報と外部リンク
+    static class AppInfo
+    {
+        // ▼ 支援ページ（Ko-fi / OFUSE / GitHub Sponsors など）と公式ページ（ブログ記事など）の URL。
+        //   https:// で始まる URL を入れると「このアプリについて」やトレイメニューにボタンが表示されます。
+        //   空欄のままならボタンは表示されません。
+        public const string SupportUrl = "";
+        public const string WebsiteUrl = "";
+
+        public static bool HasSupport { get { return IsWebUrl(SupportUrl); } }
+        public static bool HasWebsite { get { return IsWebUrl(WebsiteUrl); } }
+
+        public static string Version
+        {
+            get
+            {
+                var a = (System.Reflection.AssemblyInformationalVersionAttribute)Attribute.GetCustomAttribute(
+                    typeof(AppInfo).Assembly, typeof(System.Reflection.AssemblyInformationalVersionAttribute));
+                return a != null ? a.InformationalVersion : "";
+            }
+        }
+
+        static bool IsWebUrl(string url)
+        {
+            Uri uri;
+            return Uri.TryCreate(url, UriKind.Absolute, out uri) && uri.Scheme == Uri.UriSchemeHttps;
+        }
+
+        public static void Open(string url)
+        {
+            if (!IsWebUrl(url)) return;
+            try { System.Diagnostics.Process.Start(url); } catch { }
+        }
+    }
+
     [DataContract]
     public class ScheduleEntry
     {

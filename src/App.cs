@@ -38,6 +38,10 @@ namespace WallpaperScheduler
             autoItem.Checked = !settings.Paused;
             menu.Items.Add(autoItem);
             menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(Theme.MenuItem("このアプリについて", delegate { ShowAbout(); }));
+            if (AppInfo.HasSupport)
+                menu.Items.Add(Theme.MenuItem("開発を支援する", delegate { AppInfo.Open(AppInfo.SupportUrl); }));
+            menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Theme.MenuItem("終了", delegate { ExitThread(); }));
 
             tray = new NotifyIcon { Icon = trayIcon, ContextMenuStrip = menu, Text = "壁紙スケジューラ", Visible = true };
@@ -166,6 +170,16 @@ namespace WallpaperScheduler
             form.FormClosed += delegate { if (form == thisForm) form = null; thisForm.Dispose(); };
             form.Show();
             form.Activate();
+        }
+
+        bool aboutOpen;
+
+        void ShowAbout()
+        {
+            if (aboutOpen) return;
+            aboutOpen = true;
+            try { AboutDialog.ShowFor(form != null && !form.IsDisposed && form.Visible ? form : null); }
+            finally { aboutOpen = false; }
         }
 
         void TrySave()

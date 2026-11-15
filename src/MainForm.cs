@@ -80,6 +80,7 @@ namespace WallpaperScheduler
         readonly FlowLayoutPanel cardPanel;
         readonly DropdownButton styleDrop;
         readonly ToggleSwitch startupToggle;
+        readonly FlatButton aboutButton;
         readonly Timer clock;
         readonly ToolTip tips;
         bool updating;
@@ -149,7 +150,11 @@ namespace WallpaperScheduler
                 }
             };
 
-            Controls.AddRange(new Control[] { header, sectionTitle, countLabel, addButton, cardPanel, styleLabel, styleDrop, startupToggle });
+            aboutButton = new FlatButton { Glyph = AppInfo.HasSupport ? Glyphs.Heart : Glyphs.Info, Kind = ButtonKind.Subtle };
+            aboutButton.Click += delegate { AboutDialog.ShowFor(this); };
+            tips.SetToolTip(aboutButton, AppInfo.HasSupport ? "このアプリについて・開発の支援" : "このアプリについて");
+
+            Controls.AddRange(new Control[] { header, sectionTitle, countLabel, addButton, cardPanel, styleLabel, styleDrop, startupToggle, aboutButton });
 
             EnableDrop(this);
             EnableDrop(cardPanel);
@@ -200,8 +205,9 @@ namespace WallpaperScheduler
 
             styleLabel.Location = new Point(pad, footerY + (btnH - styleLabel.Height) / 2);
             styleDrop.SetBounds(styleLabel.Right + Theme.S(12), footerY, Theme.S(210), btnH);
+            aboutButton.SetBounds(pad + w - btnH, footerY, btnH, btnH);
             startupToggle.FitWidth();
-            startupToggle.SetBounds(pad + w - startupToggle.Width, footerY, startupToggle.Width, btnH);
+            startupToggle.SetBounds(aboutButton.Left - Theme.S(16) - startupToggle.Width, footerY, startupToggle.Width, btnH);
             FitCards();
         }
 

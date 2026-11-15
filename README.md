@@ -24,6 +24,7 @@
 リリースの手順:
 
 1. `src/Core.cs` 先頭のバージョン（3 か所）を上げる
+   - 支援ページ・公式ページの URL も同じファイルの `AppInfo.SupportUrl` / `WebsiteUrl` で設定します（空欄ならボタン非表示）
 2. `.\package.ps1` を実行
 3. コミットしてタグを付ける（例: `git tag v1.3`）
 

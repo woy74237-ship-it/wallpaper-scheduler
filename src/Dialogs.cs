@@ -102,6 +102,68 @@ namespace WallpaperScheduler
         }
     }
 
+    class AboutDialog : ThemedDialog
+    {
+        readonly Icon bigIcon;
+
+        public AboutDialog() : base("このアプリについて", 520, AppInfo.HasSupport ? 286 : 250)
+        {
+            bigIcon = Theme.LoadAppIcon(new Size(Theme.S(72), Theme.S(72)));
+            if (AppInfo.HasSupport)
+            {
+                var support = Footer.Add("開発を支援する", ButtonKind.Primary, DialogResult.None, Glyphs.Heart);
+                support.Click += delegate { AppInfo.Open(AppInfo.SupportUrl); };
+            }
+            if (AppInfo.HasWebsite)
+            {
+                var web = Footer.Add("公式ページ", ButtonKind.Standard, DialogResult.None, Glyphs.OpenInNew);
+                web.Click += delegate { AppInfo.Open(AppInfo.WebsiteUrl); };
+            }
+            var close = Footer.Add("閉じる", ButtonKind.Standard, DialogResult.Cancel);
+            AcceptButton = close;
+            CancelButton = close;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            var g = e.Graphics;
+            int pad = Theme.S(24), iconSize = Theme.S(72);
+            g.DrawIcon(bigIcon, new Rectangle(pad, pad, iconSize, iconSize));
+
+            int x = pad + iconSize + Theme.S(20), w = ClientSize.Width - x - pad, y = pad - Theme.S(2);
+            Theme.DrawText(g, "壁紙スケジューラ", Theme.Title, Theme.Fg, new Rectangle(x, y, w, Theme.S(36)), Theme.Left);
+            y += Theme.S(38);
+            Theme.DrawText(g, "バージョン " + AppInfo.Version, Theme.Body, Theme.FgDim, new Rectangle(x, y, w, Theme.S(22)), Theme.Left);
+            y += Theme.S(32);
+            var flags = TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.Left | TextFormatFlags.Top;
+            TextRenderer.DrawText(g, "指定した時刻に Windows の壁紙を自動で切り替えるアプリです。",
+                Theme.Body, new Rectangle(x, y, w, Theme.S(48)), Theme.Fg, flags);
+            if (AppInfo.HasSupport)
+            {
+                y += Theme.S(34);
+                TextRenderer.DrawText(g, "気に入っていただけたら、開発を支援していただけるとうれしいです。",
+                    Theme.Small, new Rectangle(x, y, w, Theme.S(44)), Theme.FgDim, flags);
+            }
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            bigIcon.Dispose();
+            base.OnFormClosed(e);
+        }
+
+        /// 親ウィンドウがあればその中央、なければ画面中央に表示
+        public static void ShowFor(IWin32Window owner)
+        {
+            using (var d = new AboutDialog())
+            {
+                if (owner == null) d.StartPosition = FormStartPosition.CenterScreen;
+                d.ShowDialog(owner);
+            }
+        }
+    }
+
     class ConfirmDialog : ThemedDialog
     {
         readonly string message;

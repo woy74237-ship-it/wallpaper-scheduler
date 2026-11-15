@@ -689,9 +689,9 @@ namespace WallpaperScheduler
             Height = Theme.S(76);
         }
 
-        public FlatButton Add(string text, ButtonKind kind, DialogResult result)
+        public FlatButton Add(string text, ButtonKind kind, DialogResult result, string glyph = null)
         {
-            var b = new FlatButton { Text = text, Kind = kind, DialogResult = result };
+            var b = new FlatButton { Text = text, Kind = kind, DialogResult = result, Glyph = glyph };
             Buttons.Add(b);
             Controls.Add(b);
             PerformLayout();
