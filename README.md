@@ -2,6 +2,13 @@
 
 指定した時刻に Windows の壁紙を自動で切り替えるタスクトレイ常駐アプリです。
 
+## ダウンロード
+
+**[最新版をダウンロード（GitHub Releases）](https://github.com/woy74237-ship-it/wallpaper-scheduler/releases/latest)**
+
+`WallpaperScheduler-v〇.〇.〇.zip` を展開して `WallpaperScheduler.exe` を起動するだけで使えます（インストール不要・Windows 10 / 11 対応）。
+初回起動時に「Windows によって PC が保護されました」と表示された場合は、「詳細情報」→「実行」で起動できます。
+
 ## ビルド
 
 追加のインストールは不要です（Windows 標準の .NET Framework 4.x の `csc.exe` を使用）。
