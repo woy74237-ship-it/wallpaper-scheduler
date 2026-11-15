@@ -2,7 +2,9 @@
 
 指定した時刻に Windows の壁紙を自動で切り替えるタスクトレイ常駐アプリです。
 
-📝 紹介記事: [時刻で壁紙が自動で切り替わる Windows アプリを、標準の csc.exe だけで作った（Zenn）](https://zenn.dev/walt_owen/articles/3291d8d844a05d)
+📝 紹介記事
+- 使い方の紹介（note）: [朝と夜で壁紙が自動で変わる！無料の Windows アプリ「壁紙スケジューラ」を作りました](https://note.com/quiet_raven5890/n/nb744c1f870e7)
+- 作り方の解説（Zenn）: [時刻で壁紙が自動で切り替わる Windows アプリを、標準の csc.exe だけで作った](https://zenn.dev/walt_owen/articles/3291d8d844a05d)
 
 ## ダウンロード
 
