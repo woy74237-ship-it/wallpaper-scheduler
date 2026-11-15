@@ -15,9 +15,9 @@ using Microsoft.Win32;
 [assembly: System.Reflection.AssemblyTitle("壁紙スケジューラ")]
 [assembly: System.Reflection.AssemblyDescription("指定した時刻に Windows の壁紙を切り替えるアプリ")]
 [assembly: System.Reflection.AssemblyProduct("壁紙スケジューラ")]
-[assembly: System.Reflection.AssemblyVersion("1.3.3.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.3.3.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.3.3")]
+[assembly: System.Reflection.AssemblyVersion("1.3.2.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.3.2.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.3.2")]
 
 namespace WallpaperScheduler
 {
@@ -317,27 +317,7 @@ namespace WallpaperScheduler
             bool isThisExe = false;
             try { isThisExe = string.Equals(Path.GetFullPath(path), Path.GetFullPath(Application.ExecutablePath), StringComparison.OrdinalIgnoreCase); } catch { }
             if (isThisExe && raw.IndexOf(AutostartArg, StringComparison.OrdinalIgnoreCase) < 0) { SetEnabled(true); return true; }
-
-            // 登録されているのが壁紙スケジューラの古いバージョンなら、今動いている新しいほうに移す
-            // （新しいバージョンを別のフォルダーに置いて使い始めたとき用）
-            if (!isThisExe && IsOlderVersionOfThisApp(path)) { SetEnabled(true); return true; }
             return false;
-        }
-
-        /// path が「壁紙スケジューラ」の、今動いているものより古いバージョンか
-        static bool IsOlderVersionOfThisApp(string path)
-        {
-            try
-            {
-                var other = System.Diagnostics.FileVersionInfo.GetVersionInfo(path);
-                var self = System.Diagnostics.FileVersionInfo.GetVersionInfo(Application.ExecutablePath);
-                if (!string.Equals(other.ProductName, self.ProductName, StringComparison.Ordinal)) return false;
-                if (!string.Equals(other.OriginalFilename, self.OriginalFilename, StringComparison.OrdinalIgnoreCase)) return false;
-                Version ov, sv;
-                if (!Version.TryParse(other.FileVersion, out ov) || !Version.TryParse(self.FileVersion, out sv)) return false;
-                return ov < sv;
-            }
-            catch { return false; }
         }
     }
 }
