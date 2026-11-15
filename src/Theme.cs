@@ -255,35 +255,16 @@ namespace WallpaperScheduler
             return item;
         }
 
-        public static Icon CreateAppIcon()
+        /// exe に埋め込んだ assets\app.ico を読み込む（size が空なら全サイズ入りのまま）
+        public static Icon LoadAppIcon(Size size)
         {
-            using (var bmp = new Bitmap(32, 32))
+            try
             {
-                using (var g = Graphics.FromImage(bmp))
-                using (var sky = new LinearGradientBrush(new Rectangle(0, 2, 32, 28), Color.FromArgb(40, 90, 200), Color.FromArgb(150, 200, 255), 90f))
-                using (var hill = new SolidBrush(Color.FromArgb(70, 170, 100)))
-                using (var hill2 = new SolidBrush(Color.FromArgb(40, 130, 80)))
-                {
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.Clear(Color.Transparent);
-                    using (var p = Round(new RectangleF(1, 3, 30, 26), 6))
-                    {
-                        g.FillPath(sky, p);
-                        g.SetClip(p);
-                        g.FillEllipse(Brushes.Gold, 19, 7, 8, 8);
-                        g.FillEllipse(hill2, -6, 18, 26, 20);
-                        g.FillEllipse(hill, 10, 20, 30, 18);
-                        g.ResetClip();
-                    }
-                }
-                IntPtr h = bmp.GetHicon();
-                using (var tmp = System.Drawing.Icon.FromHandle(h))
-                {
-                    var icon = (Icon)tmp.Clone();
-                    Native.DestroyIcon(h);
-                    return icon;
-                }
+                using (var s = typeof(Theme).Assembly.GetManifestResourceStream("WallpaperScheduler.app.ico"))
+                    if (s != null) return size.IsEmpty ? new Icon(s) : new Icon(s, size.Width, size.Height);
             }
+            catch { }
+            return (Icon)SystemIcons.Application.Clone();
         }
     }
 

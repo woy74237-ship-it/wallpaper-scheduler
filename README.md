@@ -12,6 +12,24 @@
 
 `bin\WallpaperScheduler.exe` が生成されます。
 
+## 配布用 ZIP の作成
+
+```powershell
+.\package.ps1
+```
+
+`dist\WallpaperScheduler-v<バージョン>.zip`（exe と利用者向けの `README.txt`）と、
+改ざん確認用の `.zip.sha256` が生成されます。
+
+リリースの手順:
+
+1. `src/Core.cs` 先頭のバージョン（3 か所）を上げる
+2. `.\package.ps1` を実行
+3. コミットしてタグを付ける（例: `git tag v1.3`）
+
+アイコンのデザインを変えたときは `tools/MakeIcon.cs` を編集し、`.\tools\make-icon.ps1` で
+`assets/app.ico` を再生成します。
+
 ## 使い方
 
 1. `WallpaperScheduler.exe` を起動（初回は設定画面が開きます）
@@ -41,8 +59,12 @@
 | `src/MainForm.cs` | メイン画面 |
 | `src/Dialogs.cs` | 追加・編集ダイアログ、確認ダイアログ |
 | `src/App.cs` | タスクトレイ常駐部とエントリポイント |
+| `assets/app.ico` | アプリアイコン（`tools/make-icon.ps1` で生成） |
+| `assets/app.manifest` | 高 DPI 対応・管理者権限不要などの宣言 |
+| `assets/README.txt` | 配布 ZIP に同梱する利用者向けの説明 |
 
 ## バージョン
 
+- v1.2: 配布の仕上げ（専用アイコン、バージョン情報、マニフェスト、配布用 ZIP スクリプト）
 - v1.1: UI を刷新（Windows 11 風デザイン、ダークモード、タイムライン、サムネイル付きカード）
 - v1.0: 最初のバージョン（`git checkout v1.0` で取り出せます）

@@ -11,9 +11,13 @@ using System.Runtime.Serialization.Json;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: System.Reflection.AssemblyTitle("Wallpaper Scheduler")]
-[assembly: System.Reflection.AssemblyProduct("Wallpaper Scheduler")]
-[assembly: System.Reflection.AssemblyVersion("1.1.0.0")]
+// バージョンはここで一元管理（exe のプロパティ・配布 ZIP の名前に使われます）
+[assembly: System.Reflection.AssemblyTitle("壁紙スケジューラ")]
+[assembly: System.Reflection.AssemblyDescription("指定した時刻に Windows の壁紙を切り替えるアプリ")]
+[assembly: System.Reflection.AssemblyProduct("壁紙スケジューラ")]
+[assembly: System.Reflection.AssemblyVersion("1.2.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.2.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.2.0")]
 
 namespace WallpaperScheduler
 {

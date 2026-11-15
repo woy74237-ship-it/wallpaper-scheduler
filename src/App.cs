@@ -15,14 +15,15 @@ namespace WallpaperScheduler
         readonly System.Windows.Forms.Timer timer;
         readonly ToolStripMenuItem autoItem;
         readonly Control invoker;
-        readonly Icon appIcon;
+        readonly Icon appIcon, trayIcon;
         MainForm form;
         string lastAppliedKey;
 
         public TrayApp()
         {
             settings = Settings.Load();
-            appIcon = Theme.CreateAppIcon();
+            appIcon = Theme.LoadAppIcon(Size.Empty);
+            trayIcon = Theme.LoadAppIcon(SystemInformation.SmallIconSize);
 
             invoker = new Control();
             var forceHandle = invoker.Handle; // 他スレッドのイベントを UI スレッドへ戻すため
@@ -39,7 +40,7 @@ namespace WallpaperScheduler
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Theme.MenuItem("終了", delegate { ExitThread(); }));
 
-            tray = new NotifyIcon { Icon = appIcon, ContextMenuStrip = menu, Text = "壁紙スケジューラ", Visible = true };
+            tray = new NotifyIcon { Icon = trayIcon, ContextMenuStrip = menu, Text = "壁紙スケジューラ", Visible = true };
             tray.MouseClick += delegate(object s, MouseEventArgs e) { if (e.Button == MouseButtons.Left) ShowSettings(); };
 
             timer = new System.Windows.Forms.Timer { Interval = 15000 };
@@ -207,8 +208,7 @@ namespace WallpaperScheduler
                     showEvent.Set();
                     return;
                 }
-                Native.SetProcessDPIAware();
-                Application.EnableVisualStyles();
+                Application.EnableVisualStyles();   // 高 DPI 対応は assets\app.manifest で宣言
                 Application.SetCompatibleTextRenderingDefault(false);
                 Theme.Init();
                 var app = new TrayApp();
