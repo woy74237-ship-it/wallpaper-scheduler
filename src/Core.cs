@@ -228,11 +228,54 @@ namespace WallpaperScheduler
 
         public static void SetEnabled(bool enabled)
         {
+            SetEnabled(enabled, false);
+        }
+
+        /// clearWindowsBlock: 使う人がアプリの画面で自分からオンにしたときは true。
+        /// Windows の「スタートアップ アプリ」に記録された「オフ」も消して、確実に有効にする
+        public static void SetEnabled(bool enabled, bool clearWindowsBlock)
+        {
             using (var k = Registry.CurrentUser.CreateSubKey(RunKey))
             {
                 if (enabled) k.SetValue(ValueName, "\"" + Application.ExecutablePath + "\" " + AutostartArg);
                 else k.DeleteValue(ValueName, false);
             }
+            if (enabled && clearWindowsBlock) ClearWindowsBlock();
+        }
+
+        // Windows の設定（スタートアップ アプリ）やタスク マネージャーでのオン／オフの記録
+        const string ApprovedKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+
+        /// 自動起動は登録されているが、Windows の設定でオフにされているか
+        /// （記録の先頭バイトの最下位ビットが 1 ならオフ。例: 01, 03 = オフ、00, 02 = オン）
+        public static bool IsBlockedByWindows()
+        {
+            try
+            {
+                using (var k = Registry.CurrentUser.OpenSubKey(ApprovedKey))
+                {
+                    var b = k == null ? null : k.GetValue(ValueName) as byte[];
+                    return b != null && b.Length > 0 && (b[0] & 1) == 1;
+                }
+            }
+            catch { return false; }
+        }
+
+        /// Windows に記録された「オフ」を消す（記録が無ければオン扱いになる）
+        public static void ClearWindowsBlock()
+        {
+            try
+            {
+                using (var k = Registry.CurrentUser.OpenSubKey(ApprovedKey, true))
+                    if (k != null) k.DeleteValue(ValueName, false);
+            }
+            catch { }
+        }
+
+        /// Windows の「スタートアップ アプリ」の設定画面を開く
+        public static void OpenWindowsStartupSettings()
+        {
+            try { System.Diagnostics.Process.Start("ms-settings:startupapps"); } catch { }
         }
 
         static string RegisteredValue()

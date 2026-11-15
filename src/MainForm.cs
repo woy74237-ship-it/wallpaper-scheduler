@@ -80,10 +80,13 @@ namespace WallpaperScheduler
         readonly FlowLayoutPanel cardPanel;
         readonly DropdownButton styleDrop;
         readonly ToggleSwitch startupToggle;
+        readonly FlatButton startupWarning;
         readonly FlatButton aboutButton;
         readonly Timer clock;
         readonly ToolTip tips;
-        bool updating;
+        bool updating, updatingStartup;
+        // 自動起動の案内を出すかどうか（Control.Visible は画面表示前だと常に false になるため別に持つ）
+        bool showStartupWarning;
 
         public event EventHandler SettingsChanged, ApplyNowRequested;
 
@@ -140,21 +143,36 @@ namespace WallpaperScheduler
             };
 
             startupToggle = new ToggleSwitch { Text = "Windows の起動時に開始" };
-            try { startupToggle.Checked = Startup.IsEnabled(); } catch { }
             startupToggle.CheckedChanged += delegate
             {
-                try { Startup.SetEnabled(startupToggle.Checked); }
+                if (updatingStartup) return;
+                // 自分からオンにしたときは、Windows の設定に残っている「オフ」も解除する
+                try { Startup.SetEnabled(startupToggle.Checked, true); }
                 catch (Exception ex)
                 {
                     MessageBox.Show(this, "自動起動の設定に失敗しました。\n" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
+                RefreshStartupState();
             };
+
+            // Windows の設定（スタートアップ アプリ）でオフにされているときの案内
+            startupWarning = new FlatButton
+            {
+                Text = "Windows の設定で自動起動がオフになっています（クリックで設定を開く）",
+                Glyph = Glyphs.Warning, Kind = ButtonKind.Subtle, Font = Theme.Small,
+                TextColorOverride = Theme.Danger, Visible = false
+            };
+            startupWarning.Click += delegate { Startup.OpenWindowsStartupSettings(); };
+            tips.SetToolTip(startupWarning, "「Windows の起動時に開始」のスイッチをオンにしても解除できます");
+            // Windows の設定画面から戻ってきたときに、状態を読み直す
+            Activated += delegate { RefreshStartupState(); };
 
             aboutButton = new FlatButton { Glyph = AppInfo.HasSupport ? Glyphs.Heart : Glyphs.Info, Kind = ButtonKind.Subtle };
             aboutButton.Click += delegate { AboutDialog.ShowFor(this); };
             tips.SetToolTip(aboutButton, AppInfo.HasSupport ? "このアプリについて・開発の支援" : "このアプリについて");
 
-            Controls.AddRange(new Control[] { header, sectionTitle, countLabel, addButton, cardPanel, styleLabel, styleDrop, startupToggle, aboutButton });
+            Controls.AddRange(new Control[] { header, sectionTitle, countLabel, addButton, cardPanel, styleLabel, styleDrop, startupToggle, startupWarning, aboutButton });
+            RefreshStartupState();
 
             EnableDrop(this);
             EnableDrop(cardPanel);
@@ -190,7 +208,7 @@ namespace WallpaperScheduler
 
         void DoLayout()
         {
-            if (header == null) return;
+            if (header == null || startupWarning == null) return;
             int pad = Theme.S(24), w = ClientSize.Width - pad * 2, btnH = Theme.S(34);
             header.SetBounds(pad, pad, w, Theme.S(222));
 
@@ -201,7 +219,15 @@ namespace WallpaperScheduler
             y += btnH + Theme.S(14);
 
             int footerY = ClientSize.Height - pad - btnH;
-            cardPanel.SetBounds(pad, y, w, Math.Max(Theme.S(60), footerY - Theme.S(20) - y));
+            int listBottom = footerY - Theme.S(20);
+            if (showStartupWarning)
+            {
+                int ww = Math.Min(w, startupWarning.PreferredWidth());
+                int wh = Theme.S(30);
+                startupWarning.SetBounds(pad + w - ww, footerY - Theme.S(8) - wh, ww, wh);
+                listBottom = startupWarning.Top - Theme.S(10);
+            }
+            cardPanel.SetBounds(pad, y, w, Math.Max(Theme.S(60), listBottom - y));
 
             styleLabel.Location = new Point(pad, footerY + (btnH - styleLabel.Height) / 2);
             styleDrop.SetBounds(styleLabel.Right + Theme.S(12), footerY, Theme.S(210), btnH);
@@ -209,6 +235,26 @@ namespace WallpaperScheduler
             startupToggle.FitWidth();
             startupToggle.SetBounds(aboutButton.Left - Theme.S(16) - startupToggle.Width, footerY, startupToggle.Width, btnH);
             FitCards();
+        }
+
+        /// 自動起動のスイッチと案内を、登録の有無と Windows の設定の両方から決める
+        /// ・登録あり、Windows でもオン → スイッチ オン
+        /// ・登録あり、Windows でオフ   → スイッチ オフ ＋ 案内を表示
+        /// ・登録なし                   → スイッチ オフ
+        void RefreshStartupState()
+        {
+            if (startupToggle == null || startupWarning == null) return;
+            bool registered = false, blocked = false;
+            try { registered = Startup.IsEnabled(); blocked = registered && Startup.IsBlockedByWindows(); } catch { }
+            updatingStartup = true;
+            startupToggle.Checked = registered && !blocked;
+            updatingStartup = false;
+            if (showStartupWarning != blocked)
+            {
+                showStartupWarning = blocked;
+                startupWarning.Visible = blocked;
+                DoLayout();
+            }
         }
 
         void FitCards()

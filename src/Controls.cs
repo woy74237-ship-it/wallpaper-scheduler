@@ -47,6 +47,8 @@ namespace WallpaperScheduler
         public string Glyph { get; set; }
         public ButtonKind Kind { get; set; }
         public DialogResult DialogResult { get; set; }
+        /// 文字色を指定したいとき（Subtle・Standard のみ。空なら通常の色）
+        public Color TextColorOverride { get; set; }
 
         public FlatButton()
         {
@@ -101,6 +103,7 @@ namespace WallpaperScheduler
                     if (Hover) Theme.FillRound(g, Pressed ? Theme.PressOverlay : Theme.HoverOverlay, r, rad);
                     break;
             }
+            if (!TextColorOverride.IsEmpty && (Kind == ButtonKind.Subtle || Kind == ButtonKind.Standard)) fg = TextColorOverride;
             if (!Enabled) fg = Theme.FgDim;
             if (Pressed && Kind != ButtonKind.Primary && Kind != ButtonKind.Danger) fg = Theme.FgDim;
 
