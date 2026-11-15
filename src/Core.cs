@@ -15,9 +15,9 @@ using Microsoft.Win32;
 [assembly: System.Reflection.AssemblyTitle("壁紙スケジューラ")]
 [assembly: System.Reflection.AssemblyDescription("指定した時刻に Windows の壁紙を切り替えるアプリ")]
 [assembly: System.Reflection.AssemblyProduct("壁紙スケジューラ")]
-[assembly: System.Reflection.AssemblyVersion("1.3.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.3.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.3.0")]
+[assembly: System.Reflection.AssemblyVersion("1.3.1.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.3.1.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.3.1")]
 
 namespace WallpaperScheduler
 {
@@ -28,7 +28,7 @@ namespace WallpaperScheduler
         //   https:// で始まる URL を入れると「このアプリについて」やトレイメニューにボタンが表示されます。
         //   空欄のままならボタンは表示されません。
         public const string SupportUrl = "https://ofuse.me/c0fdccc4";
-        public const string WebsiteUrl = "";
+        public const string WebsiteUrl = "https://zenn.dev/walt_owen/articles/3291d8d844a05d";
 
         public static bool HasSupport { get { return IsWebUrl(SupportUrl); } }
         public static bool HasWebsite { get { return IsWebUrl(WebsiteUrl); } }

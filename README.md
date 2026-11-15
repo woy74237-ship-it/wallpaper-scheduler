@@ -2,6 +2,8 @@
 
 指定した時刻に Windows の壁紙を自動で切り替えるタスクトレイ常駐アプリです。
 
+📝 紹介記事: [時刻で壁紙が自動で切り替わる Windows アプリを、標準の csc.exe だけで作った（Zenn）](https://zenn.dev/walt_owen/articles/3291d8d844a05d)
+
 ## ダウンロード
 
 **[最新版をダウンロード（GitHub Releases）](https://github.com/woy74237-ship-it/wallpaper-scheduler/releases/latest)**
@@ -79,6 +81,7 @@
 
 ## バージョン
 
+- v1.3.1: 「このアプリについて」に紹介記事（公式ページ）へのボタンを追加
 - v1.3: 「このアプリについて」画面と開発の支援リンクを追加
 - v1.2: 配布の仕上げ（専用アイコン、バージョン情報、マニフェスト、配布用 ZIP スクリプト）
 - v1.1: UI を刷新（Windows 11 風デザイン、ダークモード、タイムライン、サムネイル付きカード）
