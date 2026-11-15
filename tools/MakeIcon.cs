@@ -181,8 +181,9 @@ class MakeIcon
     // ------------------------------------------------------------------
     // 宣伝用の横長画像：左から右へ「朝 → 昼 → 夕方 → 夜」と移り変わる空
     // ------------------------------------------------------------------
-    static readonly Color[] DayColors = { C(0xFF, 0xB0, 0x8A), C(0x8F, 0xB8, 0xF2), C(0x7A, 0x5B, 0xD8), C(0x1E, 0x26, 0x6E) };
-    static readonly float[] DayPositions = { 0f, 0.33f, 0.66f, 1f };
+    // 朝焼けのオレンジから青空へ直接つなぐと中間がくすむので、ピンクをはさむ
+    static readonly Color[] DayColors = { C(0xFF, 0xB0, 0x8A), C(0xF2, 0xA7, 0xC3), C(0x8F, 0xB8, 0xF2), C(0x7A, 0x5B, 0xD8), C(0x1E, 0x26, 0x6E) };
+    static readonly float[] DayPositions = { 0f, 0.17f, 0.36f, 0.66f, 1f };
 
     static Color Blend(Color a, Color b, float t)
     {
@@ -229,8 +230,8 @@ class MakeIcon
             gp.AddEllipse(sx - sr * 2.2f, sy - sr * 2.2f, sr * 4.4f, sr * 4.4f);
             using (var glow = new PathGradientBrush(gp))
             {
-                glow.CenterColor = Color.FromArgb(150, 0xFF, 0xE8, 0xA8);
-                glow.SurroundColors = new[] { Color.FromArgb(0, 0xFF, 0xE8, 0xA8) };
+                glow.CenterColor = Color.FromArgb(120, 0xFF, 0xD9, 0x8A);
+                glow.SurroundColors = new[] { Color.FromArgb(0, 0xFF, 0xD9, 0x8A) };
                 g.FillPath(glow, gp);
             }
         }
@@ -238,10 +239,7 @@ class MakeIcon
             g.FillEllipse(sun, sx - sr, sy - sr, sr * 2, sr * 2);
         // 三日月（夜側）
         float mx = w * 0.84f, my = h * 0.32f, mr = u * 0.11f;
-        using (var moon = new SolidBrush(C(0xF4, 0xF1, 0xD0)))
-            g.FillEllipse(moon, mx - mr, my - mr, mr * 2, mr * 2);
-        using (var cut = new SolidBrush(Blend(SkyAt(0.86f), Color.FromArgb(10, 10, 40), 0.15f)))
-            g.FillEllipse(cut, mx - mr + mr * 0.45f, my - mr - mr * 0.25f, mr * 2, mr * 2);
+        Crescent(g, mx, my, mr, mr * 0.45f, -mr * 0.25f, C(0xF4, 0xF1, 0xD0));
 
         // 山並み
         FillRidgeWide(g, w, h, Color.FromArgb(235, 0x5B, 0x3F, 0xA6), new[] {
@@ -250,6 +248,33 @@ class MakeIcon
         FillRidgeWide(g, w, h, C(0x2A, 0x22, 0x66), new[] {
             new PointF(-0.02f, 0.84f), new PointF(0.18f, 0.73f), new PointF(0.38f, 0.85f),
             new PointF(0.60f, 0.75f), new PointF(0.80f, 0.86f), new PointF(1.02f, 0.77f) });
+    }
+
+    /// 三日月（4 倍の解像度で、円から少しずらした円をくり抜いてから縮小し、縁をなめらかにする）
+    static void Crescent(Graphics g, float cx, float cy, float r, float dx, float dy, Color color)
+    {
+        const int k = 4;
+        int size = (int)Math.Ceiling(r * 2 * k) + 8;
+        using (var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb))
+        {
+            using (var bg = Graphics.FromImage(bmp))
+            using (var moon = new GraphicsPath())
+            using (var cut = new GraphicsPath())
+            using (var region = new Region())
+            using (var b = new SolidBrush(color))
+            {
+                moon.AddEllipse(4, 4, r * 2 * k, r * 2 * k);
+                cut.AddEllipse(4 + dx * k, 4 + dy * k, r * 2 * k, r * 2 * k);
+                region.MakeEmpty();
+                region.Union(moon);
+                region.Exclude(cut);
+                bg.FillRegion(b, region);
+            }
+            var old = g.InterpolationMode;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.DrawImage(bmp, cx - r - 1f, cy - r - 1f, size / (float)k, size / (float)k);
+            g.InterpolationMode = old;
+        }
     }
 
     static void FillRidgeWide(Graphics g, int w, int h, Color color, PointF[] normalized)

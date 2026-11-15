@@ -48,6 +48,9 @@
 `assets/app.ico` を再生成します。支援ページや SNS 用の画像（プロフィール・カバー・OGP）は
 `.\tools\make-promo.ps1` で `promo/` に出力されます。
 
+紹介ページは `site/` にあり、main ブランチに push すると GitHub Actions（`.github/workflows/pages.yml`）で
+GitHub Pages に公開されます。ページ用の画像は `.\tools\make-site-assets.ps1` で `site/images/` に生成します。
+
 ## 使い方
 
 1. `WallpaperScheduler.exe` を起動（初回は設定画面が開きます）

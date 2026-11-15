@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>壁紙スケジューラ｜時刻で Windows の壁紙を自動で切り替える無料ソフト</title>
+<meta name="description" content="指定した時刻に Windows の壁紙を自動で切り替えるフリーソフト。朝は朝焼け、昼は青空、夜は星空と、時間帯に合わせて壁紙が変わります。Windows 10 / 11 対応、インストール不要・無料。">
+<link rel="canonical" href="https://woy74237-ship-it.github.io/wallpaper-scheduler/">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<meta name="theme-color" content="#2a2266">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="壁紙スケジューラ">
+<meta property="og:title" content="壁紙スケジューラ｜時刻で Windows の壁紙を自動で切り替える無料ソフト">
+<meta property="og:description" content="朝は朝焼け、昼は青空、夜は星空。決めた時刻に Windows の壁紙が自動で切り替わります。無料・インストール不要。">
+<meta property="og:url" content="https://woy74237-ship-it.github.io/wallpaper-scheduler/">
+<meta property="og:image" content="https://woy74237-ship-it.github.io/wallpaper-scheduler/images/ogp.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "壁紙スケジューラ",
+  "description": "指定した時刻に Windows の壁紙を自動で切り替えるフリーソフト。",
+  "operatingSystem": "Windows 10, Windows 11",
+  "applicationCategory": "UtilitiesApplication",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+  "downloadUrl": "https://github.com/woy74237-ship-it/wallpaper-scheduler/releases/latest",
+  "image": "https://woy74237-ship-it.github.io/wallpaper-scheduler/images/icon-256.png",
+  "screenshot": "https://woy74237-ship-it.github.io/wallpaper-scheduler/images/main.png",
+  "license": "https://opensource.org/licenses/MIT",
+  "author": { "@type": "Person", "name": "Walt-Owen" }
+}
+</script>
+
+<style>
+  :root {
+    --bg: #f6f6fb;
+    --surface: #ffffff;
+    --border: #e4e3f0;
+    --text: #1b1f4a;
+    --text-dim: #5a5f7a;
+    --accent: #4b3fb8;
+    --accent-hover: #3c31a0;
+    --on-accent: #ffffff;
+    --chip: #eceefb;
+    --shadow: 0 10px 30px rgba(27, 31, 74, .10);
+    --night: #2a2266;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12122a;
+      --surface: #1c1c3a;
+      --border: #2e2d55;
+      --text: #f1f0ff;
+      --text-dim: #b4b2d6;
+      --accent: #9d8cff;
+      --accent-hover: #b3a6ff;
+      --on-accent: #12122a;
+      --chip: #2a2952;
+      --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Yu Gothic UI", "Hiragino Sans", "Noto Sans JP", "Meiryo", system-ui, sans-serif;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; display: block; }
+  .wrap { width: min(1080px, 100% - 32px); margin: 0 auto; }
+
+  /* ヘッダー */
+  .site-header {
+    position: absolute; inset: 0 0 auto 0; z-index: 2;
+  }
+  .site-header .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; }
+  .brand img { width: 32px; height: 32px; }
+  .site-nav { display: flex; gap: 20px; }
+  .site-nav a { color: rgba(255, 255, 255, .9); text-decoration: none; font-size: 14px; }
+  .site-nav a:hover { color: #fff; text-decoration: underline; }
+  @media (max-width: 640px) { .site-nav { display: none; } }
+
+  /* ヒーロー */
+  .hero {
+    position: relative;
+    color: #fff;
+    background: var(--night) url("images/hero.png") center bottom / cover no-repeat;
+    padding: 120px 0 180px;
+    text-align: center;
+  }
+  .hero::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(20, 18, 60, .45), rgba(20, 18, 60, .15) 60%, rgba(20, 18, 60, 0));
+  }
+  .hero .wrap { position: relative; z-index: 1; }
+  .eyebrow {
+    display: inline-block; padding: 4px 14px; border-radius: 999px;
+    background: rgba(255, 255, 255, .18); font-size: 14px; letter-spacing: .04em;
+  }
+  .hero h1 {
+    margin: 18px 0 12px; font-size: clamp(32px, 6vw, 56px); line-height: 1.25; letter-spacing: .02em;
+    text-shadow: 0 2px 16px rgba(20, 18, 60, .45);
+  }
+  .hero .lead { margin: 0 auto 32px; max-width: 640px; font-size: clamp(16px, 2.4vw, 19px); color: rgba(255, 255, 255, .95); }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 17px; text-decoration: none;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: #fff; color: #2a2266; box-shadow: 0 8px 24px rgba(20, 18, 60, .35); }
+  .btn-primary:hover { background: #f1efff; }
+  .btn-ghost { color: #fff; border: 1.5px solid rgba(255, 255, 255, .7); }
+  .btn-ghost:hover { background: rgba(255, 255, 255, .12); }
+  .meta { margin-top: 14px; font-size: 14px; color: rgba(255, 255, 255, .85); }
+  .meta span { white-space: nowrap; }
+
+  /* スクリーンショット */
+  .showcase { margin-top: -130px; position: relative; z-index: 1; }
+  .showcase img {
+    margin: 0 auto; width: min(760px, 100%);
+    border-radius: 14px; box-shadow: 0 24px 60px rgba(20, 18, 60, .35);
+  }
+
+  /* セクション共通 */
+  section { padding: 80px 0 0; }
+  h2 { font-size: clamp(24px, 4vw, 32px); text-align: center; margin: 0 0 12px; }
+  .section-lead { text-align: center; color: var(--text-dim); margin: 0 auto 40px; max-width: 640px; }
+
+  /* 朝・昼・夜 */
+  .day { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .day figure { margin: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  .day figcaption { padding: 12px 16px; display: flex; align-items: baseline; gap: 10px; }
+  .day .time { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .day .label { color: var(--text-dim); font-size: 14px; }
+  @media (max-width: 720px) { .day { grid-template-columns: 1fr; } }
+
+  /* 特長 */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feature { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px 22px 18px; }
+  .feature .icon { font-size: 28px; line-height: 1; }
+  .feature h3 { margin: 12px 0 6px; font-size: 18px; }
+  .feature p { margin: 0; color: var(--text-dim); font-size: 15px; }
+  @media (max-width: 900px) { .features { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .features { grid-template-columns: 1fr; } }
+
+  /* 使い方 */
+  .howto { display: grid; grid-template-columns: 1fr 1.2fr; gap: 40px; align-items: center; }
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .steps li { counter-increment: step; position: relative; padding: 0 0 22px 56px; }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent); color: var(--on-accent); font-weight: 700;
+  }
+  .steps h3 { margin: 4px 0 4px; font-size: 18px; }
+  .steps p { margin: 0; color: var(--text-dim); font-size: 15px; }
+  .howto img { border-radius: 12px; box-shadow: var(--shadow); }
+  @media (max-width: 820px) { .howto { grid-template-columns: 1fr; } }
+
+  /* よくある質問 */
+  .faq { max-width: 760px; margin: 0 auto; }
+  .faq details { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px 20px; margin-bottom: 12px; }
+  .faq summary { cursor: pointer; font-weight: 700; padding: 14px 0; list-style: none; position: relative; padding-right: 28px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "＋"; position: absolute; right: 0; top: 14px; color: var(--text-dim); }
+  .faq details[open] summary::after { content: "－"; }
+  .faq details p { margin: 0 0 16px; color: var(--text-dim); }
+
+  /* リンク・応援 */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card {
+    display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 22px; text-decoration: none; color: var(--text); transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .card .kicker { font-size: 13px; color: var(--accent); font-weight: 700; }
+  .card .title { display: block; margin-top: 6px; font-weight: 700; }
+  .card .desc { display: block; margin-top: 6px; font-size: 14px; color: var(--text-dim); }
+  @media (max-width: 820px) { .cards { grid-template-columns: 1fr; } }
+
+  .support {
+    margin: 80px auto 0; text-align: center; color: #fff; border-radius: 20px; padding: 48px 24px;
+    background:
+      linear-gradient(rgba(20, 18, 60, .55), rgba(20, 18, 60, .55)),
+      var(--night) url("images/hero.png") center 70% / cover no-repeat;
+  }
+  .support h2 { color: #fff; }
+  .support p { margin: 0 auto 24px; max-width: 560px; color: rgba(255, 255, 255, .92); }
+
+  footer { padding: 48px 0 40px; text-align: center; color: var(--text-dim); font-size: 14px; }
+  footer a { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="images/icon-256.png" alt="" width="32" height="32">壁紙スケジューラ</a>
+    <nav class="site-nav" aria-label="ページ内リンク">
+      <a href="#features">特長</a>
+      <a href="#howto">使い方</a>
+      <a href="#faq">よくある質問</a>
+      <a href="https://github.com/woy74237-ship-it/wallpaper-scheduler">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-labelledby="title">
+    <div class="wrap">
+      <span class="eyebrow">Windows 用フリーソフト</span>
+      <h1 id="title">時刻で、壁紙が<br>自動で切り替わる。</h1>
+      <p class="lead">朝は朝焼け、昼は青空、夜は星空。決めた時刻に、Windows の壁紙を自動で切り替える無料のアプリです。</p>
+      <div class="cta">
+        <a class="btn btn-primary" data-download href="https://github.com/woy74237-ship-it/wallpaper-scheduler/releases/latest">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v9.59l3.3-3.3a1 1 0 1 1 1.4 1.42l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.42l3.3 3.3V4a1 1 0 0 1 1-1ZM5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1Z"/></svg>
+          無料ダウンロード
+        </a>
+        <a class="btn btn-ghost" href="#howto">使い方を見る</a>
+      </div>
+      <p class="meta"><span data-version>最新版</span> ・ <span>Windows 10 / 11</span> ・ <span>インストール不要</span></p>
+    </div>
+  </section>
+
+  <div class="showcase wrap">
+    <img src="images/main.png" width="1174" height="1097" alt="壁紙スケジューラのメイン画面。6:00・12:00・19:00 に朝・昼・夜の壁紙を登録し、24 時間のタイムラインで表示している">
+  </div>
+
+  <section aria-labelledby="day-title">
+    <div class="wrap">
+      <h2 id="day-title">一日の流れに合わせて、壁紙が変わる</h2>
+      <p class="section-lead">時刻と画像を登録しておくだけ。毎日その時刻になると、壁紙が自動で切り替わります。</p>
+      <div class="day">
+        <figure>
+          <img src="images/morning.jpg" width="960" height="540" alt="朝焼けの空と山並みの壁紙" loading="lazy">
+          <figcaption><span class="time">6:00</span><span class="label">朝は、やわらかな朝焼け</span></figcaption>
+        </figure>
+        <figure>
+          <img src="images/noon.jpg" width="960" height="540" alt="青空と白い雲の壁紙" loading="lazy">
+          <figcaption><span class="time">12:00</span><span class="label">昼は、すっきり青空</span></figcaption>
+        </figure>
+        <figure>
+          <img src="images/night.jpg" width="960" height="540" alt="星空と三日月の壁紙" loading="lazy">
+          <figcaption><span class="time">19:00</span><span class="label">夜は、落ち着いた星空</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <h2 id="features-title">特長</h2>
+      <p class="section-lead">Windows 標準のスライドショーではできない「何時にこの画像」を、かんたんに。</p>
+      <div class="features">
+        <div class="feature">
+          <div class="icon" aria-hidden="true">⏰</div>
+          <h3>時刻を指定して切り替え</h3>
+          <p>「6:00 は朝の景色」のように、時刻と画像を登録するだけ。毎日くり返し切り替わります。</p>
+        </div>
+        <div class="feature">
+          <div class="icon" aria-hidden="true">🌈</div>
+          <h3>24 時間タイムライン</h3>
+          <p>どの時間帯にどの壁紙になるかを、各画像の色でひと目で確認できます。</p>
+        </div>
+        <div class="feature">
+          <div class="icon" aria-hidden="true">🖱️</div>
+          <h3>ドラッグ＆ドロップで登録</h3>
+          <p>画像を画面に落とすだけ。時刻は大きな数字とショートカットで直感的に選べます。</p>
+        </div>
+        <div class="feature">
+          <div class="icon" aria-hidden="true">🌙</div>
+          <h3>ダークモード対応</h3>
+          <p>Windows のダーク／ライトモードとアクセントカラーに合わせた、すっきりしたデザイン。</p>
+        </div>
+        <div class="feature">
+          <div class="icon" aria-hidden="true">💤</div>
+          <h3>スリープ復帰も安心</h3>
+          <p>タスクトレイに常駐。スリープ復帰やロック解除のあとも、その時間の壁紙に戻ります。</p>
+        </div>
+        <div class="feature">
+          <div class="icon" aria-hidden="true">🔒</div>
+          <h3>インストール不要・通信なし</h3>
+          <p>ZIP を展開して起動するだけ。インターネットへの通信は行いません。ソースコードも公開しています。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="howto" aria-labelledby="howto-title">
+    <div class="wrap">
+      <h2 id="howto-title">使い方は 3 ステップ</h2>
+      <p class="section-lead">難しい設定はありません。</p>
+      <div class="howto">
+        <ol class="steps">
+          <li>
+            <h3>ダウンロードして起動</h3>
+            <p>ZIP を右クリック →「すべて展開」し、<code>WallpaperScheduler.exe</code> をダブルクリックします。</p>
+          </li>
+          <li>
+            <h3>時刻と画像を登録</h3>
+            <p>「追加」を押して、切り替える時刻と画像を選びます。画像を画面にドラッグしても登録できます。</p>
+          </li>
+          <li>
+            <h3>あとは放っておくだけ</h3>
+            <p>時刻になると、壁紙が自動で切り替わります。「Windows の起動時に開始」をオンにすれば、PC を起動するたびに自動で動きます。</p>
+          </li>
+        </ol>
+        <img src="images/edit.png" width="1054" height="645" alt="時刻と画像を選ぶ画面。大きな時刻表示と、朝・昼・夕方・夜のショートカット、画像のプレビュー" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <h2 id="faq-title">よくある質問</h2>
+      <div class="faq">
+        <details>
+          <summary>「Windows によって PC が保護されました」と表示されます</summary>
+          <p>個人が作った、まだ利用者の少ないアプリに表示される確認画面です。ウイルスが見つかったという意味ではありません。「詳細情報」を押してから「実行」を押すと起動できます。ソースコードは GitHub で公開しています。</p>
+        </details>
+        <details>
+          <summary>料金はかかりますか？</summary>
+          <p>無料です。広告もありません。MIT ライセンスで公開しているオープンソースのソフトです。</p>
+        </details>
+        <details>
+          <summary>対応している Windows は？</summary>
+          <p>Windows 10 と Windows 11 です。動作に必要な .NET Framework 4.x は Windows に標準で入っているため、追加のインストールは不要です。</p>
+        </details>
+        <details>
+          <summary>深夜など、最初の時刻より前はどうなりますか？</summary>
+          <p>前日の最後の壁紙が表示されます。たとえば 6:00 と 20:00 を登録している場合、深夜 2 時は 20:00 の壁紙です。</p>
+        </details>
+        <details>
+          <summary>やめるとき（アンインストール）は？</summary>
+          <p>設定画面で「Windows の起動時に開始」をオフにしてアプリを終了し、フォルダーを削除するだけです。設定も消す場合は <code>%APPDATA%\WallpaperScheduler</code> を削除してください。</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="more-title">
+    <div class="wrap">
+      <h2 id="more-title">もっと知る</h2>
+      <p class="section-lead">紹介記事やソースコードはこちら。</p>
+      <div class="cards">
+        <a class="card" href="https://note.com/quiet_raven5890/n/nb744c1f870e7">
+          <span class="kicker">note</span>
+          <span class="title">使い方の紹介</span>
+          <span class="desc">おすすめの使い方や、安心して使うためのポイント。</span>
+        </a>
+        <a class="card" href="https://zenn.dev/walt_owen/articles/3291d8d844a05d">
+          <span class="kicker">Zenn</span>
+          <span class="title">作り方の解説</span>
+          <span class="desc">標準の csc.exe だけで作った、開発の裏側。</span>
+        </a>
+        <a class="card" href="https://github.com/woy74237-ship-it/wallpaper-scheduler">
+          <span class="kicker">GitHub</span>
+          <span class="title">ソースコード</span>
+          <span class="desc">MIT ライセンスで公開中。要望は Issues へ。</span>
+        </a>
+      </div>
+
+      <div class="support">
+        <h2>開発を応援する</h2>
+        <p>気に入っていただけたら、応援していただけると開発の励みになります。いただいた応援は、新しい機能の開発に使わせていただきます。</p>
+        <a class="btn btn-primary" href="https://ofuse.me/c0fdccc4">♥ OFUSE で応援する</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    © 2026 Walt-Owen ・ <a href="https://github.com/woy74237-ship-it/wallpaper-scheduler/blob/main/LICENSE">MIT License</a>
+  </div>
+</footer>
+
+<script>
+  // 最新リリースの情報を取得し、ダウンロードボタンを ZIP への直接リンクにする（失敗したらリリースページのまま）
+  fetch("https://api.github.com/repos/woy74237-ship-it/wallpaper-scheduler/releases/latest")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (rel) {
+      if (!rel) return;
+      var m = (rel.name || "").match(/v\d+(\.\d+)+/) || (rel.tag_name || "").match(/v\d+(\.\d+)*/);
+      var zip = (rel.assets || []).filter(function (a) { return /\.zip$/i.test(a.name); })[0];
+      if (m) document.querySelectorAll("[data-version]").forEach(function (e) {
+        e.textContent = "最新版 " + m[0] + (zip ? "（" + Math.round(zip.size / 1024) + " KB）" : "");
+      });
+      if (zip) document.querySelectorAll("[data-download]").forEach(function (a) { a.href = zip.browser_download_url; });
+    })
+    .catch(function () {});
+</script>
+</body>
+</html>
