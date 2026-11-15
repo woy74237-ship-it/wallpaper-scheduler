@@ -7,7 +7,7 @@ $root = Split-Path $PSScriptRoot -Parent
 $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $tmp = Join-Path ([IO.Path]::GetTempPath()) 'WallpaperScheduler-MakeIcon.exe'
 
-& $csc /nologo /r:System.Drawing.dll "/out:$tmp" (Join-Path $PSScriptRoot 'MakeIcon.cs')
+& $csc /nologo /codepage:65001 /r:System.Drawing.dll "/out:$tmp" (Join-Path $PSScriptRoot 'MakeIcon.cs')
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 New-Item -ItemType Directory -Force (Join-Path $root 'assets') | Out-Null

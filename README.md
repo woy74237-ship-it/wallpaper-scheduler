@@ -41,7 +41,8 @@
 3. コミットしてタグを付ける（例: `git tag v1.3`）
 
 アイコンのデザインを変えたときは `tools/MakeIcon.cs` を編集し、`.\tools\make-icon.ps1` で
-`assets/app.ico` を再生成します。
+`assets/app.ico` を再生成します。支援ページや SNS 用の画像（プロフィール・カバー・OGP）は
+`.\tools\make-promo.ps1` で `promo/` に出力されます。
 
 ## 使い方
 
