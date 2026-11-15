@@ -2,6 +2,7 @@
 #   ofuse-avatar.png  … プロフィール画像（512x512、丸い切り抜きに対応）
 #   ofuse-cover.png   … カバーアート（1000x150）
 #   ogp.png           … シェア時のサムネイル（1200x630）
+#   wallpapers\       … サンプル壁紙 morning / noon / night（3840x2160、記事のスクリーンショット用など）
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
@@ -16,4 +17,11 @@ New-Item -ItemType Directory -Force $out | Out-Null
 & $tmp --cover (Join-Path $out 'ofuse-cover.png') 1000 150
 & $tmp --ogp (Join-Path $out 'ogp.png')
 Remove-Item $tmp
+
+# サンプル壁紙（朝・昼・夜、4K）
+$wp = Join-Path ([IO.Path]::GetTempPath()) 'WallpaperScheduler-MakeWallpapers.exe'
+& $csc /nologo /codepage:65001 /r:System.Drawing.dll "/out:$wp" (Join-Path $PSScriptRoot 'MakeWallpapers.cs')
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+& $wp (Join-Path $out 'wallpapers') 3840 2160
+Remove-Item $wp
 Get-ChildItem $out -Filter *.png | ForEach-Object { Write-Host "生成しました: $($_.FullName)" }
