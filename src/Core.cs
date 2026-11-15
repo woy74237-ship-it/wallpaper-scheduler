@@ -226,5 +226,26 @@ namespace WallpaperScheduler
                 else k.DeleteValue(ValueName, false);
             }
         }
+
+        /// 登録されている exe のパス（未登録なら null）
+        public static string RegisteredPath()
+        {
+            using (var k = Registry.CurrentUser.OpenSubKey(RunKey))
+            {
+                var v = k == null ? null : k.GetValue(ValueName) as string;
+                return string.IsNullOrWhiteSpace(v) ? null : v.Trim().Trim('"');
+            }
+        }
+
+        /// 自動起動がオンなのに、登録先の exe が移動・削除されて存在しない場合は、
+        /// 今動いている exe に登録し直す（別の場所にある有効な exe の登録は変えない）
+        public static bool RepairIfBroken()
+        {
+            string path = RegisteredPath();
+            if (path == null) return false;
+            try { if (File.Exists(path)) return false; } catch { }
+            SetEnabled(true);
+            return true;
+        }
     }
 }

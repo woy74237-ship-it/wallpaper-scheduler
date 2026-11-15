@@ -22,6 +22,8 @@ namespace WallpaperScheduler
         public TrayApp()
         {
             settings = Settings.Load();
+            // exe を移動・削除して自動起動の登録先が無くなっていたら、今の exe に登録し直す
+            try { Startup.RepairIfBroken(); } catch { }
             appIcon = Theme.LoadAppIcon(Size.Empty);
             trayIcon = Theme.LoadAppIcon(SystemInformation.SmallIconSize);
 
