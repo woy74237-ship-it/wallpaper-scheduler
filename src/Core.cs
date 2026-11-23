@@ -15,9 +15,9 @@ using Microsoft.Win32;
 [assembly: System.Reflection.AssemblyTitle("壁紙スケジューラ")]
 [assembly: System.Reflection.AssemblyDescription("指定した時刻に Windows の壁紙を切り替えるアプリ")]
 [assembly: System.Reflection.AssemblyProduct("壁紙スケジューラ")]
-[assembly: System.Reflection.AssemblyVersion("1.3.2.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.3.2.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.3.2")]
+[assembly: System.Reflection.AssemblyVersion("1.4.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.4.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.4.0")]
 
 namespace WallpaperScheduler
 {
@@ -60,16 +60,88 @@ namespace WallpaperScheduler
     public class ScheduleEntry
     {
         [DataMember(Order = 1)] public string Time { get; set; }      // "HH:mm"
+        /// 表示する画像。フォルダ指定のときは、フォルダから選ばれた今の画像
+        /// （古いバージョンで設定を開いても、この画像で動くようにするため）
         [DataMember(Order = 2)] public string ImagePath { get; set; }
+        /// フォルダからランダムに選ぶときのフォルダ（画像 1 枚の指定なら空）
+        [DataMember(Order = 3, EmitDefaultValue = false)] public string FolderPath { get; set; }
+        /// ImagePath を選んだ時間帯（"yyyy-MM-dd HH:mm"）。同じ時間帯のあいだは選び直さないために使う
+        [DataMember(Order = 4, EmitDefaultValue = false)] public string PickedAt { get; set; }
+        /// フォルダの画像のうち、今の一巡で表示済みのファイル名。全部表示し終えるまで同じ画像は選ばない
+        [DataMember(Order = 5, EmitDefaultValue = false)] public List<string> Shown { get; set; }
+
+        public bool IsFolder { get { return !string.IsNullOrEmpty(FolderPath); } }
 
         public bool IsValid
         {
             get
             {
                 TimeSpan ts;
-                return !string.IsNullOrEmpty(ImagePath) &&
+                return (!string.IsNullOrEmpty(ImagePath) || IsFolder) &&
                        TimeSpan.TryParseExact(Time ?? "", @"hh\:mm", CultureInfo.InvariantCulture, out ts);
             }
+        }
+
+        /// 画面に出す名前（画像はファイル名、フォルダはフォルダ名）
+        public string DisplayName
+        {
+            get
+            {
+                try { return IsFolder ? Path.GetFileName(FolderPath.TrimEnd('\\', '/')) : Path.GetFileName(ImagePath); }
+                catch { return IsFolder ? FolderPath : ImagePath; }
+            }
+        }
+
+        /// 今の ImagePath が、指定フォルダの中に実在する画像か
+        bool HasValidPick
+        {
+            get
+            {
+                try
+                {
+                    return !string.IsNullOrEmpty(ImagePath) && File.Exists(ImagePath) &&
+                           string.Equals(Path.GetDirectoryName(Path.GetFullPath(ImagePath)).TrimEnd('\\'),
+                                         Path.GetFullPath(FolderPath).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
+                }
+                catch { return false; }
+            }
+        }
+
+        /// フォルダ指定のとき、この時間帯の画像を決める。
+        /// 時間帯が新しく始まったら、まだ表示していない画像からランダムに選ぶ。同じ時間帯のあいだ（再起動しても）は変えない。
+        /// 選び直したら true
+        public bool EnsurePicked(DateTime now)
+        {
+            if (!IsFolder) return false;
+            string key = Scheduler.OccurrenceKey(this, now);
+            bool valid = HasValidPick;
+            if (valid && PickedAt == key) return false;
+            if (valid && PickedAt == null)
+            {
+                // 登録画面で見えていた画像を、そのまま最初の画像にする
+                PickedAt = key;
+                if (Shown == null) Shown = new List<string>();
+                FolderImages.MarkShown(Shown, ImagePath);
+                return true;
+            }
+            return PickNext(valid ? ImagePath : null, key);
+        }
+
+        /// 今の時間帯の画像を、別の画像に選び直す（「別の画像にする」）
+        public bool Reshuffle(DateTime now)
+        {
+            if (!IsFolder || FolderImages.Count(FolderPath) < 2) return false;
+            return PickNext(HasValidPick ? ImagePath : null, Scheduler.OccurrenceKey(this, now));
+        }
+
+        bool PickNext(string current, string key)
+        {
+            if (Shown == null) Shown = new List<string>();
+            string next = FolderImages.PickUnseen(FolderPath, current, Shown);
+            if (next == null) return false; // フォルダが無い・画像が無い
+            ImagePath = next;
+            PickedAt = key;
+            return true;
         }
 
         public TimeSpan TimeOfDay
@@ -158,6 +230,14 @@ namespace WallpaperScheduler
             return list[0];
         }
 
+        /// その項目の時間帯が始まった日時（"yyyy-MM-dd HH:mm"）。今日まだその時刻でなければ前日
+        public static string OccurrenceKey(ScheduleEntry e, DateTime now)
+        {
+            var start = now.Date + e.TimeOfDay;
+            if (e.TimeOfDay > now.TimeOfDay) start = start.AddDays(-1);
+            return start.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+        }
+
         /// 「3時間12分」のような残り時間表記
         public static string Remaining(TimeSpan target, DateTime now)
         {
@@ -166,6 +246,89 @@ namespace WallpaperScheduler
             int total = (int)Math.Ceiling(d.TotalMinutes);
             int h = total / 60, m = total % 60;
             return h > 0 ? h + "時間" + m + "分" : m + "分";
+        }
+    }
+
+    /// フォルダ内の画像の一覧（サブフォルダは含めない）
+    public static class FolderImages
+    {
+        class Entry { public DateTime Stamp; public List<string> Files; }
+        static readonly Dictionary<string, Entry> cache = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
+        static readonly Random random = new Random();
+
+        public static readonly string[] Extensions = { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff", ".jfif" };
+
+        public static bool IsImageFile(string path)
+        {
+            try { return Array.IndexOf(Extensions, Path.GetExtension(path).ToLowerInvariant()) >= 0; }
+            catch { return false; }
+        }
+
+        /// 画像ファイルの一覧（名前順）。フォルダが無ければ null
+        public static List<string> List(string folder)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) return null;
+                // ファイルの追加・削除・名前変更でフォルダの更新日時が変わるので、それまでは一覧を使い回す
+                DateTime stamp = Directory.GetLastWriteTimeUtc(folder);
+                Entry e;
+                if (cache.TryGetValue(folder, out e) && e.Stamp == stamp) return e.Files;
+                var files = Directory.EnumerateFiles(folder).Where(IsImageFile)
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList();
+                cache[folder] = new Entry { Stamp = stamp, Files = files };
+                return files;
+            }
+            catch { return null; }
+        }
+
+        public static int Count(string folder)
+        {
+            var l = List(folder);
+            return l == null ? -1 : l.Count;
+        }
+
+        /// ランダムに 1 枚選ぶ。exclude（前回の画像）は、ほかに画像があれば選ばない。画像が無ければ null
+        public static string Pick(string folder, string exclude)
+        {
+            var files = List(folder);
+            if (files == null || files.Count == 0) return null;
+            var candidates = files.Where(f => !string.Equals(f, exclude, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (candidates.Count == 0) candidates = files;
+            return candidates[random.Next(candidates.Count)];
+        }
+
+        /// 表示済みとして記録する（ファイル名で記録）
+        public static void MarkShown(List<string> shown, string path)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+            string name = Path.GetFileName(path);
+            if (!shown.Contains(name, StringComparer.OrdinalIgnoreCase)) shown.Add(name);
+        }
+
+        /// まだ表示していない画像からランダムに 1 枚選び、表示済みに加える（シャッフル再生と同じ考え方）。
+        /// current（今の画像）も表示済みとして扱う。全部表示し終えたら記録を空にして一巡し直す（今の画像は続けて選ばない）。
+        /// 画像が無ければ null
+        public static string PickUnseen(string folder, string current, List<string> shown)
+        {
+            var files = List(folder);
+            if (files == null || files.Count == 0) return null;
+            var names = new HashSet<string>(files.Select(f => Path.GetFileName(f)), StringComparer.OrdinalIgnoreCase);
+            shown.RemoveAll(n => !names.Contains(n)); // フォルダから消えた画像は忘れる
+            if (current != null && names.Contains(Path.GetFileName(current))) MarkShown(shown, current);
+
+            var seen = new HashSet<string>(shown, StringComparer.OrdinalIgnoreCase);
+            var candidates = files.Where(f => !seen.Contains(Path.GetFileName(f))).ToList();
+            if (candidates.Count == 0)
+            {
+                // 一巡した → 最初から。ただし今の画像がすぐ続かないようにする
+                shown.Clear();
+                candidates = files.Where(f => !string.Equals(f, current, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (candidates.Count == 0) candidates = files;
+            }
+            string next = candidates[random.Next(candidates.Count)];
+            MarkShown(shown, next);
+            return next;
         }
     }
 

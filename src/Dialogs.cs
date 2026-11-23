@@ -1,5 +1,6 @@
 // 追加・編集ダイアログと確認ダイアログ
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
@@ -41,12 +42,16 @@ namespace WallpaperScheduler
     {
         readonly TimeSelector time;
         readonly ImageDropZone zone;
+        readonly FlatButton modeButton, shuffleButton;
+        readonly ToolTip tipsForMode;
+        readonly ScheduleEntry original;
 
         public ScheduleEntry Result { get; private set; }
 
         public EntryDialog(ScheduleEntry source, bool isNew)
             : base(isNew ? "切り替えの追加" : "切り替えの編集", 700, 404)
         {
+            original = source;
             int pad = Theme.S(24);
 
             var timeLabel = Theme.MakeLabel("時刻", Theme.BodySemi, Theme.Fg, Theme.Bg);
@@ -74,11 +79,46 @@ namespace WallpaperScheduler
             int zx = pad + time.Width + Theme.S(36);
             var imageLabel = Theme.MakeLabel("画像", Theme.BodySemi, Theme.Fg, Theme.Bg);
             imageLabel.Location = new Point(zx, pad);
-            zone = new ImageDropZone { ImagePath = source.ImagePath };
+            zone = new ImageDropZone();
+            if (source.IsFolder)
+            {
+                zone.FolderPath = source.FolderPath;
+                if (File.Exists(source.ImagePath)) zone.PreviewImage = source.ImagePath;
+            }
+            else zone.ImagePath = source.ImagePath;
             int zw = ClientSize.Width - zx - pad;
             zone.SetBounds(zx, pad + Theme.S(36), zw, zw * 9 / 16);
             Controls.Add(imageLabel);
             Controls.Add(zone);
+
+            // 「画像を選ぶ」⇔「フォルダを選ぶ」の切り替え（今と反対の選び方を出す）
+            modeButton = new FlatButton { Kind = ButtonKind.Subtle, Font = Theme.Small };
+            shuffleButton = new FlatButton { Kind = ButtonKind.Subtle, Font = Theme.Small, Text = "別の画像にする", Glyph = Glyphs.Shuffle };
+            shuffleButton.Click += delegate { zone.ShufflePreview(); };
+            Action updateMode = delegate
+            {
+                bool folder = zone.IsFolder;
+                modeButton.Text = folder ? "1 枚の画像を選ぶ" : "フォルダから選ぶ";
+                modeButton.Glyph = folder ? Glyphs.Photo : Glyphs.Folder;
+                int bw = modeButton.PreferredWidth(), bh = Theme.S(30);
+                modeButton.SetBounds(zone.Right - bw + Theme.S(8), pad + (imageLabel.Height - bh) / 2, bw, bh);
+                imageLabel.Text = folder ? "フォルダ" : "画像";
+                // 最初に表示する画像が気に入らないときに選び直すボタン（フォルダに 2 枚以上あるとき）
+                shuffleButton.Visible = folder && FolderImages.Count(zone.FolderPath) > 1;
+                int sw = shuffleButton.PreferredWidth();
+                shuffleButton.SetBounds(modeButton.Left - sw, modeButton.Top, sw, bh);
+                tipsForMode.SetToolTip(modeButton, folder
+                    ? "フォルダではなく、決まった 1 枚の画像を表示します"
+                    : "時間帯が始まるたびに、フォルダの中から画像をランダムに選んで表示します");
+            };
+            tipsForMode = new ToolTip();
+            tipsForMode.SetToolTip(shuffleButton, "最初に表示する画像を選び直します。フォルダの画像を一巡するまで、同じ画像は出ません");
+            modeButton.Click += delegate { if (zone.IsFolder) zone.ChooseImage(); else zone.ChooseFolder(); };
+            zone.PathChanged += delegate { updateMode(); };
+            updateMode();
+            Controls.Add(modeButton);
+            Controls.Add(shuffleButton);
+            FormClosed += delegate { tipsForMode.Dispose(); };
 
             var save = Footer.Add(isNew ? "追加" : "保存", ButtonKind.Primary, DialogResult.None);
             var cancel = Footer.Add("キャンセル", ButtonKind.Standard, DialogResult.Cancel);
@@ -91,6 +131,32 @@ namespace WallpaperScheduler
 
         void Accept()
         {
+            if (zone.IsFolder)
+            {
+                if (FolderImages.Count(zone.FolderPath) <= 0)
+                {
+                    zone.ShowError = true;
+                    return;
+                }
+                string folder = Path.GetFullPath(zone.FolderPath);
+                // 同じフォルダのまま編集したときは、今の画像と選んだ時間帯を引き継ぐ（保存しただけで変わらないように）
+                // 画像を選び直したとき（「別の画像にする」）は、保存した時点でその画像を表示する
+                bool sameFolder = original.IsFolder &&
+                    string.Equals(Path.GetFullPath(original.FolderPath), folder, StringComparison.OrdinalIgnoreCase);
+                bool sameImage = sameFolder && string.Equals(original.ImagePath, zone.PreviewImage, StringComparison.OrdinalIgnoreCase);
+                string t = ScheduleEntry.Format(time.Value);
+                Result = new ScheduleEntry
+                {
+                    Time = t,
+                    FolderPath = folder,
+                    ImagePath = zone.PreviewImage ?? FolderImages.Pick(folder, null),
+                    PickedAt = sameImage && t == original.Time ? original.PickedAt : null,
+                    // 同じフォルダなら「表示済み」の記録も引き継ぐ（一巡するまで同じ画像を出さないため）
+                    Shown = sameFolder && original.Shown != null ? new List<string>(original.Shown) : null
+                };
+                DialogResult = DialogResult.OK;
+                return;
+            }
             string path = (zone.ImagePath ?? "").Trim().Trim('"');
             if (!File.Exists(path))
             {

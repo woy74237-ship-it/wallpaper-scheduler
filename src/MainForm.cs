@@ -13,7 +13,9 @@ namespace WallpaperScheduler
     {
         public ScheduleEntry Active, Next;
         public bool Paused;
-        public readonly FlatButton ApplyButton;
+        public readonly FlatButton ApplyButton, ShuffleButton;
+        /// 「別の画像にする」ボタンを出すか（今の時間帯がフォルダ指定で、画像が 2 枚以上あるとき）
+        public bool CanShuffle;
         public readonly ToggleSwitch AutoToggle;
         public readonly TimelineBar Timeline;
 
@@ -21,9 +23,10 @@ namespace WallpaperScheduler
         {
             BackColor = Theme.Surface;
             ApplyButton = new FlatButton { Text = "今すぐ適用", Glyph = Glyphs.Refresh, Kind = ButtonKind.Standard };
+            ShuffleButton = new FlatButton { Glyph = Glyphs.Shuffle, Kind = ButtonKind.Standard, Visible = false };
             AutoToggle = new ToggleSwitch { Text = "自動切り替え" };
             Timeline = new TimelineBar();
-            Controls.AddRange(new Control[] { ApplyButton, AutoToggle, Timeline });
+            Controls.AddRange(new Control[] { ApplyButton, ShuffleButton, AutoToggle, Timeline });
         }
 
         Rectangle ThumbRect { get { return new Rectangle(Theme.S(16), Theme.S(16), Theme.S(224), Theme.S(126)); } }
@@ -36,6 +39,9 @@ namespace WallpaperScheduler
             ApplyButton.SetBounds(tx, tr.Bottom - h, ApplyButton.PreferredWidth(), h);
             AutoToggle.FitWidth();
             AutoToggle.SetBounds(Width - Theme.S(20) - AutoToggle.Width, tr.Bottom - h, AutoToggle.Width, h);
+            // 「今すぐ適用」の右に、アイコンだけのボタンで置く（狭くて入らないときは出さない）
+            ShuffleButton.SetBounds(ApplyButton.Right + Theme.S(8), tr.Bottom - h, h, h);
+            ShuffleButton.Visible = CanShuffle && ShuffleButton.Right + Theme.S(12) <= AutoToggle.Left;
             Timeline.SetBounds(Theme.S(16), tr.Bottom + Theme.S(18), Width - Theme.S(32), Theme.S(46));
         }
 
@@ -60,11 +66,14 @@ namespace WallpaperScheduler
             Theme.DrawText(g, Paused ? "現在の壁紙  ·  自動切り替えは停止中" : "現在の壁紙", Theme.Small, Theme.FgDim,
                 new Rectangle(tx, Theme.S(16), tw, Theme.S(20)), Theme.Left);
 
-            string name = Active == null ? "スケジュールがありません" : Path.GetFileNameWithoutExtension(Active.ImagePath);
+            string name = Active == null ? "スケジュールがありません"
+                : string.IsNullOrEmpty(Active.ImagePath) ? Active.DisplayName : Path.GetFileNameWithoutExtension(Active.ImagePath);
             Theme.DrawText(g, name, Theme.Title, Theme.Fg, new Rectangle(tx, Theme.S(38), tw, Theme.S(38)), Theme.Left);
 
             string sub;
             if (Active == null) sub = "「追加」から時刻と画像を登録してください";
+            else if (Active.IsFolder && FolderImages.Count(Active.FolderPath) <= 0)
+                sub = (FolderImages.Count(Active.FolderPath) < 0 ? "フォルダが見つかりません" : "フォルダに画像がありません") + "  ·  壁紙は変更しません";
             else if (Next == null || Next == Active) sub = "毎日この壁紙を表示します";
             else sub = Active.Time + " から表示  ·  次は " + Next.Time + "（あと " + Scheduler.Remaining(Next.TimeOfDay, now) + "）";
             Theme.DrawText(g, sub, Theme.Body, Theme.FgDim, new Rectangle(tx, Theme.S(78), tw, Theme.S(24)), Theme.Left);
@@ -88,7 +97,7 @@ namespace WallpaperScheduler
         // 自動起動の案内を出すかどうか（Control.Visible は画面表示前だと常に false になるため別に持つ）
         bool showStartupWarning;
 
-        public event EventHandler SettingsChanged, ApplyNowRequested;
+        public event EventHandler SettingsChanged, ApplyNowRequested, ShuffleRequested;
 
         public MainForm(Settings settings, Icon icon)
         {
@@ -108,6 +117,7 @@ namespace WallpaperScheduler
 
             header = new HeaderPanel();
             header.ApplyButton.Click += delegate { if (ApplyNowRequested != null) ApplyNowRequested(this, EventArgs.Empty); };
+            header.ShuffleButton.Click += delegate { if (ShuffleRequested != null) ShuffleRequested(this, EventArgs.Empty); };
             header.AutoToggle.CheckedChanged += delegate
             {
                 if (updating) return;
@@ -169,6 +179,7 @@ namespace WallpaperScheduler
 
             aboutButton = new FlatButton { Glyph = AppInfo.HasSupport ? Glyphs.Heart : Glyphs.Info, Kind = ButtonKind.Subtle };
             aboutButton.Click += delegate { AboutDialog.ShowFor(this); };
+            tips.SetToolTip(header.ShuffleButton, "別の画像にする（フォルダの画像を一巡するまで、同じ画像は出ません）");
             tips.SetToolTip(aboutButton, AppInfo.HasSupport ? "このアプリについて・開発の支援" : "このアプリについて");
 
             Controls.AddRange(new Control[] { header, sectionTitle, countLabel, addButton, cardPanel, styleLabel, styleDrop, startupToggle, startupWarning, aboutButton });
@@ -278,7 +289,7 @@ namespace WallpaperScheduler
                 // カード自身のイベント中に自分を破棄しないよう、処理は後回しにする
                 card.EditClicked += delegate { BeginInvoke((MethodInvoker)delegate { EditEntry(entry); }); };
                 card.DeleteClicked += delegate { BeginInvoke((MethodInvoker)delegate { DeleteEntry(entry); }); };
-                tips.SetToolTip(card, entry.ImagePath);
+                tips.SetToolTip(card, entry.IsFolder ? entry.FolderPath : entry.ImagePath);
                 EnableDrop(card);
                 cardPanel.Controls.Add(card);
             }
@@ -296,6 +307,8 @@ namespace WallpaperScheduler
             header.Active = active;
             header.Next = Scheduler.GetNext(settings.Entries, now);
             header.Paused = settings.Paused;
+            bool canShuffle = active != null && active.IsFolder && FolderImages.Count(active.FolderPath) > 1;
+            if (header.CanShuffle != canShuffle) { header.CanShuffle = canShuffle; header.PerformLayout(); }
             header.Timeline.Entries = Scheduler.Sorted(settings.Entries);
 
             updating = true;
@@ -310,7 +323,8 @@ namespace WallpaperScheduler
                 var card = c as ScheduleCard;
                 if (card == null) continue;
                 bool isActive = card.Entry == active;
-                if (card.IsActive != isActive) { card.IsActive = isActive; card.Invalidate(); }
+                card.IsActive = isActive;
+                card.Invalidate(); // フォルダ指定の画像が選び直されたときも描き直す
             }
         }
 
@@ -320,7 +334,7 @@ namespace WallpaperScheduler
             int w = cardPanel.ClientSize.Width, cy = cardPanel.ClientSize.Height / 2;
             Theme.DrawText(e.Graphics, Glyphs.Photo, Theme.IconLarge, Theme.FgDim, new Rectangle(0, cy - Theme.S(70), w, Theme.S(50)), Theme.Center);
             Theme.DrawText(e.Graphics, "まだスケジュールがありません", Theme.BodySemi, Theme.Fg, new Rectangle(0, cy - Theme.S(12), w, Theme.S(26)), Theme.Center);
-            Theme.DrawText(e.Graphics, "「追加」を押すか、画像をここにドラッグして登録できます", Theme.Small, Theme.FgDim,
+            Theme.DrawText(e.Graphics, "「追加」を押すか、画像やフォルダをここにドラッグして登録できます", Theme.Small, Theme.FgDim,
                 new Rectangle(0, cy + Theme.S(16), w, Theme.S(22)), Theme.Center);
         }
 
@@ -331,9 +345,10 @@ namespace WallpaperScheduler
         }
 
         // ---- 追加・編集・削除 ----
-        void AddEntry(string imagePath)
+        void AddEntry(string path)
         {
-            var draft = new ScheduleEntry { Time = SuggestTime(), ImagePath = imagePath };
+            var draft = new ScheduleEntry { Time = SuggestTime() };
+            if (path != null && Directory.Exists(path)) draft.FolderPath = path; else draft.ImagePath = path;
             using (var dlg = new EntryDialog(draft, true))
                 if (dlg.ShowDialog(this) == DialogResult.OK) Upsert(null, dlg.Result);
         }
@@ -346,7 +361,7 @@ namespace WallpaperScheduler
 
         void DeleteEntry(ScheduleEntry entry)
         {
-            string msg = entry.Time + " の切り替えを削除しますか？\n" + Path.GetFileName(entry.ImagePath);
+            string msg = entry.Time + " の切り替えを削除しますか？\n" + entry.DisplayName;
             using (var dlg = new ConfirmDialog("切り替えの削除", msg, "削除"))
             {
                 if (dlg.ShowDialog(this) != DialogResult.OK) return;
@@ -382,7 +397,7 @@ namespace WallpaperScheduler
         static string DroppedImage(DragEventArgs e)
         {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            return files != null && files.Length > 0 && ThumbCache.IsImageFile(files[0]) ? files[0] : null;
+            return files != null && files.Length > 0 && (ThumbCache.IsImageFile(files[0]) || Directory.Exists(files[0])) ? files[0] : null;
         }
 
         void OnDragEnter(object sender, DragEventArgs e)

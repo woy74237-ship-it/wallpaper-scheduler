@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace WallpaperScheduler
@@ -378,13 +379,28 @@ namespace WallpaperScheduler
 
             // サムネイル
             var tr = new RectangleF(Theme.S(14), (Height - Theme.S(56)) / 2f, Theme.S(100), Theme.S(56));
-            bool exists = File.Exists(Entry.ImagePath);
+            // フォルダ指定なら枚数（-1: フォルダが無い）
+            int count = Entry.IsFolder ? FolderImages.Count(Entry.FolderPath) : 0;
+            bool exists = Entry.IsFolder ? count > 0 : File.Exists(Entry.ImagePath);
             var thumb = exists ? ThumbCache.Get(Entry.ImagePath) : null;
             if (thumb != null) Theme.DrawImageCover(g, thumb.Image, tr, Theme.S(4));
             else
             {
                 Theme.FillRound(g, Theme.Track, tr, Theme.S(4));
-                Theme.DrawText(g, Glyphs.Warning, Theme.IconFont, Theme.FgDim, Rectangle.Round(tr), Theme.Center);
+                Theme.DrawText(g, exists ? Glyphs.Folder : Glyphs.Warning, Theme.IconFont, Theme.FgDim, Rectangle.Round(tr), Theme.Center);
+            }
+            if (Entry.IsFolder && count > 0)
+            {
+                // サムネイルの右下に「フォルダのマーク＋枚数」
+                string num = count.ToString();
+                var ns = Theme.Measure(num, Theme.Small);
+                int gw = Theme.S(14), bh = Theme.S(20), bw = Theme.S(6) + gw + Theme.S(3) + ns.Width + Theme.S(6);
+                var br = new RectangleF(tr.Right - bw - Theme.S(4), tr.Bottom - bh - Theme.S(4), bw, bh);
+                Theme.FillRound(g, Color.FromArgb(170, 0, 0, 0), br, Theme.S(4));
+                Theme.DrawText(g, Glyphs.Folder, Theme.IconSmall, Color.White,
+                    new Rectangle((int)br.X + Theme.S(6), (int)br.Y, gw, bh), Theme.Center);
+                Theme.DrawText(g, num, Theme.Small, Color.White,
+                    new Rectangle((int)br.X + Theme.S(6) + gw + Theme.S(3), (int)br.Y, ns.Width + 2, bh), Theme.Left);
             }
 
             // 時刻・バッジ・ファイル名
@@ -401,8 +417,12 @@ namespace WallpaperScheduler
                 Theme.FillRound(g, Theme.Accent, br, br.Height / 2f);
                 Theme.DrawText(g, badge, Theme.Small, Theme.OnAccent, Rectangle.Round(br), Theme.Center);
             }
-            string name = Path.GetFileName(Entry.ImagePath);
-            if (!exists) name += "  —  ファイルが見つかりません";
+            string name;
+            if (!Entry.IsFolder)
+                name = Entry.DisplayName + (exists ? "" : "  —  ファイルが見つかりません");
+            else if (count < 0) name = Entry.DisplayName + "  —  フォルダが見つかりません";
+            else if (count == 0) name = Entry.DisplayName + "  —  フォルダに画像がありません";
+            else name = Entry.DisplayName + " フォルダからランダム  ·  " + Path.GetFileName(Entry.ImagePath);
             Theme.DrawText(g, name, Theme.Body, exists ? Theme.FgDim : Theme.Danger,
                 new Rectangle(x, Theme.S(44), Math.Max(0, right - x), Theme.S(24)), Theme.Left);
 
@@ -569,7 +589,7 @@ namespace WallpaperScheduler
     /// クリックで選択・ドラッグ＆ドロップで画像を指定するエリア
     class ImageDropZone : SmoothControl
     {
-        string path;
+        string path, folder, preview;
         bool dragging, error;
         public event EventHandler PathChanged;
 
@@ -579,16 +599,53 @@ namespace WallpaperScheduler
             Cursor = Cursors.Hand;
         }
 
+        /// 画像 1 枚を指定（フォルダ指定は解除される）
         public string ImagePath
         {
             get { return path; }
+            set { path = value; folder = null; preview = null; Changed(); }
+        }
+
+        /// フォルダを指定（画像 1 枚の指定は解除される）
+        public string FolderPath
+        {
+            get { return folder; }
             set
             {
-                path = value;
-                error = false;
-                Invalidate();
-                if (PathChanged != null) PathChanged(this, EventArgs.Empty);
+                folder = value; path = null;
+                previewSeen.Clear();
+                preview = FolderImages.PickUnseen(value, null, previewSeen);
+                Changed();
             }
+        }
+
+        // 見本の画像を選び直したときに、フォルダの画像を一巡するまで同じ画像を出さないための記録
+        readonly List<string> previewSeen = new List<string>();
+
+        /// 見本の画像を、別の画像に選び直す（最初に表示する画像になる）
+        public void ShufflePreview()
+        {
+            if (!IsFolder) return;
+            string next = FolderImages.PickUnseen(folder, preview, previewSeen);
+            if (next == null) return;
+            preview = next;
+            Changed();
+        }
+
+        /// フォルダ指定のとき、見本として表示している画像（登録時の最初の画像にも使う）
+        public string PreviewImage
+        {
+            get { return preview; }
+            set { if (folder != null) { preview = value; previewSeen.Clear(); Invalidate(); } }
+        }
+
+        public bool IsFolder { get { return folder != null; } }
+
+        void Changed()
+        {
+            error = false;
+            Invalidate();
+            if (PathChanged != null) PathChanged(this, EventArgs.Empty);
         }
 
         public bool ShowError { get { return error; } set { error = value; Invalidate(); } }
@@ -596,17 +653,36 @@ namespace WallpaperScheduler
         protected override void OnClick(EventArgs e)
         {
             base.OnClick(e);
+            if (IsFolder) ChooseFolder(); else ChooseImage();
+        }
+
+        public void ChooseImage()
+        {
             using (var ofd = new OpenFileDialog { Filter = ThumbCache.Filter, Title = "壁紙にする画像を選択" })
             {
-                try { if (File.Exists(path)) ofd.InitialDirectory = Path.GetDirectoryName(path); } catch { }
+                try
+                {
+                    if (File.Exists(path)) ofd.InitialDirectory = Path.GetDirectoryName(path);
+                    else if (Directory.Exists(folder)) ofd.InitialDirectory = folder;
+                }
+                catch { }
                 if (ofd.ShowDialog(FindForm()) == DialogResult.OK) ImagePath = ofd.FileName;
             }
+        }
+
+        public void ChooseFolder()
+        {
+            string start = folder;
+            try { if (start == null && File.Exists(path)) start = Path.GetDirectoryName(path); } catch { }
+            string f = FolderPicker.Show(FindForm(), "壁紙にする画像が入ったフォルダを選択", start);
+            if (f != null) FolderPath = f;
         }
 
         static string DroppedFile(DragEventArgs e)
         {
             var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            return files != null && files.Length == 1 && ThumbCache.IsImageFile(files[0]) ? files[0] : null;
+            if (files == null || files.Length != 1) return null;
+            return ThumbCache.IsImageFile(files[0]) || Directory.Exists(files[0]) ? files[0] : null;
         }
 
         protected override void OnDragEnter(DragEventArgs e)
@@ -624,7 +700,10 @@ namespace WallpaperScheduler
             base.OnDragDrop(e);
             dragging = false;
             string f = DroppedFile(e);
-            if (f != null) ImagePath = f;
+            if (f != null)
+            {
+                if (Directory.Exists(f)) FolderPath = f; else ImagePath = f;
+            }
             Invalidate();
         }
 
@@ -633,7 +712,8 @@ namespace WallpaperScheduler
             var g = Begin(e, BackColor);
             var r = new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f);
             float rad = Theme.S(8);
-            var thumb = ThumbCache.Get(path);
+            int folderCount = IsFolder ? FolderImages.Count(folder) : 0;
+            var thumb = ThumbCache.Get(IsFolder ? preview : path);
 
             if (thumb == null)
             {
@@ -646,13 +726,21 @@ namespace WallpaperScheduler
                     g.DrawPath(pen, pth);
                 }
                 int cy = Height / 2;
-                Theme.DrawText(g, Glyphs.Photo, Theme.IconLarge, dragging ? Theme.Accent : Theme.FgDim,
+                Theme.DrawText(g, IsFolder ? Glyphs.Folder : Glyphs.Photo, Theme.IconLarge, dragging ? Theme.Accent : Theme.FgDim,
                     new Rectangle(0, cy - Theme.S(64), Width, Theme.S(48)), Theme.Center);
                 string main = error ? "画像を選択してください" : "クリックして画像を選択";
-                if (!error && !string.IsNullOrEmpty(path)) main = "ファイルが見つかりません";
-                Theme.DrawText(g, main, Theme.BodySemi, error || !string.IsNullOrEmpty(path) ? Theme.Danger : Theme.Fg,
+                string sub = "またはここに画像やフォルダをドラッグ＆ドロップ";
+                bool bad = error || !string.IsNullOrEmpty(path);
+                if (IsFolder)
+                {
+                    main = folderCount < 0 ? "フォルダが見つかりません" : "フォルダに画像がありません";
+                    sub = "クリックして別のフォルダを選択";
+                    bad = true;
+                }
+                else if (!error && !string.IsNullOrEmpty(path)) main = "ファイルが見つかりません";
+                Theme.DrawText(g, main, Theme.BodySemi, bad ? Theme.Danger : Theme.Fg,
                     new Rectangle(0, cy - Theme.S(4), Width, Theme.S(26)), Theme.Center);
-                Theme.DrawText(g, "またはここにドラッグ＆ドロップ", Theme.Small, Theme.FgDim,
+                Theme.DrawText(g, sub, Theme.Small, Theme.FgDim,
                     new Rectangle(0, cy + Theme.S(22), Width, Theme.S(22)), Theme.Center);
                 return;
             }
@@ -668,12 +756,21 @@ namespace WallpaperScheduler
                 if (Hover) using (var ov = new SolidBrush(Color.FromArgb(30, 255, 255, 255))) g.FillRectangle(ov, r);
                 g.ResetClip();
             }
-            string hint = "クリックして変更";
+            string hint = IsFolder ? folderCount + " 枚からランダムに表示" : "クリックして変更";
             var hs = Theme.Measure(hint, Theme.Small);
             int pad = Theme.S(14);
             var textRow = new Rectangle(pad, Height - Theme.S(40), Width - pad * 2, Theme.S(28));
-            Theme.DrawText(g, Path.GetFileName(path), Theme.BodySemi, Color.White,
-                new Rectangle(textRow.X, textRow.Y, textRow.Width - hs.Width - Theme.S(12), textRow.Height), Theme.Left);
+            var nameRect = new Rectangle(textRow.X, textRow.Y, textRow.Width - hs.Width - Theme.S(12), textRow.Height);
+            if (IsFolder)
+            {
+                int gw = Theme.S(22);
+                Theme.DrawText(g, Glyphs.Folder, Theme.IconFont, Color.White, new Rectangle(nameRect.X, nameRect.Y, gw, nameRect.Height), Theme.Left);
+                nameRect = new Rectangle(nameRect.X + gw, nameRect.Y, nameRect.Width - gw, nameRect.Height);
+            }
+            string label;
+            try { label = IsFolder ? Path.GetFileName(folder.TrimEnd('\\', '/')) : Path.GetFileName(path); }
+            catch { label = IsFolder ? folder : path; }
+            Theme.DrawText(g, label, Theme.BodySemi, Color.White, nameRect, Theme.Left);
             Theme.DrawText(g, hint, Theme.Small, Color.FromArgb(220, 220, 220),
                 new Rectangle(textRow.Right - hs.Width, textRow.Y, hs.Width + 2, textRow.Height), Theme.Left);
             if (dragging) Theme.DrawRound(g, Theme.Accent, new RectangleF(1, 1, Width - 3, Height - 3), rad, Theme.Sf(2));
@@ -719,6 +816,101 @@ namespace WallpaperScheduler
         {
             var g = Begin(e, Theme.Surface);
             using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, 0, 0, Width, 0);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    /// Windows 標準の「フォルダーの選択」画面（エクスプローラーと同じ見た目）。
+    /// 使えない環境では、従来の FolderBrowserDialog で代用する
+    static class FolderPicker
+    {
+        public static string Show(IWin32Window owner, string title, string initial)
+        {
+            try { return ShowModern(owner, title, initial); }
+            catch (COMException) { }
+            catch (InvalidCastException) { }
+            using (var fbd = new FolderBrowserDialog { Description = title, ShowNewFolderButton = false })
+            {
+                try { if (Directory.Exists(initial)) fbd.SelectedPath = initial; } catch { }
+                return fbd.ShowDialog(owner) == DialogResult.OK ? fbd.SelectedPath : null;
+            }
+        }
+
+        static string ShowModern(IWin32Window owner, string title, string initial)
+        {
+            var dlg = (IFileOpenDialog)new FileOpenDialogRCW();
+            try
+            {
+                uint opts;
+                dlg.GetOptions(out opts);
+                dlg.SetOptions(opts | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
+                dlg.SetTitle(title);
+                if (!string.IsNullOrEmpty(initial) && Directory.Exists(initial))
+                {
+                    IShellItem item;
+                    var iid = typeof(IShellItem).GUID;
+                    if (SHCreateItemFromParsingName(initial, IntPtr.Zero, ref iid, out item) == 0)
+                    {
+                        dlg.SetFolder(item);
+                        Marshal.ReleaseComObject(item);
+                    }
+                }
+                int hr = dlg.Show(owner == null ? IntPtr.Zero : owner.Handle);
+                if (hr != 0) return null; // キャンセル
+                IShellItem result;
+                dlg.GetResult(out result);
+                try
+                {
+                    IntPtr p;
+                    result.GetDisplayName(SIGDN_FILESYSPATH, out p);
+                    try { return Marshal.PtrToStringUni(p); }
+                    finally { Marshal.FreeCoTaskMem(p); }
+                }
+                finally { Marshal.ReleaseComObject(result); }
+            }
+            finally { Marshal.ReleaseComObject(dlg); }
+        }
+
+        const uint FOS_PICKFOLDERS = 0x20, FOS_FORCEFILESYSTEM = 0x40, FOS_PATHMUSTEXIST = 0x800;
+        const uint SIGDN_FILESYSPATH = 0x80058000;
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        static extern int SHCreateItemFromParsingName(string path, IntPtr pbc, ref Guid riid, out IShellItem item);
+
+        [ComImport, Guid("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7")]
+        class FileOpenDialogRCW { }
+
+        [ComImport, Guid("d57c7288-d4ad-4768-be02-9d969532d960"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IFileOpenDialog
+        {
+            [PreserveSig] int Show(IntPtr parent);
+            void SetFileTypes(uint count, IntPtr specs);
+            void SetFileTypeIndex(uint index);
+            void GetFileTypeIndex(out uint index);
+            void Advise(IntPtr events, out uint cookie);
+            void Unadvise(uint cookie);
+            void SetOptions(uint fos);
+            void GetOptions(out uint fos);
+            void SetDefaultFolder(IShellItem item);
+            void SetFolder(IShellItem item);
+            void GetFolder(out IShellItem item);
+            void GetCurrentSelection(out IShellItem item);
+            void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string name);
+            void GetFileName(out IntPtr name);
+            void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string title);
+            void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string text);
+            void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string label);
+            void GetResult(out IShellItem item);
+        }
+
+        [ComImport, Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IShellItem
+        {
+            void BindToHandler(IntPtr pbc, ref Guid bhid, ref Guid riid, out IntPtr ppv);
+            void GetParent(out IShellItem parent);
+            void GetDisplayName(uint sigdn, out IntPtr name);
+            void GetAttributes(uint mask, out uint attribs);
+            void Compare(IShellItem other, uint hint, out int order);
         }
     }
 }

@@ -25,6 +25,7 @@ namespace WallpaperScheduler
         public const string Add = "", Edit = "", Delete = "", ChevronDown = "", ChevronUp = "",
             Photo = "", Warning = "", Check = "", Refresh = "",
             Info = "", Heart = "", OpenInNew = "";
+        public const string Folder = "", Shuffle = "";
     }
 
     static class Theme

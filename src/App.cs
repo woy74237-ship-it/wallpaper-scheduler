@@ -1,6 +1,7 @@
 // タスクトレイ常駐部とエントリポイント
 using System;
 using System.Drawing;
+using System.IO;
 using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -13,7 +14,7 @@ namespace WallpaperScheduler
         readonly NotifyIcon tray;
         readonly ContextMenuStrip menu;
         readonly System.Windows.Forms.Timer timer;
-        readonly ToolStripMenuItem autoItem;
+        readonly ToolStripMenuItem autoItem, shuffleItem;
         readonly Control invoker;
         readonly Icon appIcon, trayIcon;
         MainForm form;
@@ -37,6 +38,8 @@ namespace WallpaperScheduler
             openItem.Font = Theme.BodySemi;
             menu.Items.Add(openItem);
             menu.Items.Add(Theme.MenuItem("今すぐ適用", delegate { Check(true); }));
+            shuffleItem = Theme.MenuItem("別の画像にする", delegate { Reshuffle(); });
+            menu.Items.Add(shuffleItem);
             autoItem = Theme.MenuItem("自動切り替え", delegate { TogglePause(); });
             autoItem.Checked = !settings.Paused;
             menu.Items.Add(autoItem);
@@ -46,6 +49,12 @@ namespace WallpaperScheduler
                 menu.Items.Add(Theme.MenuItem("開発を支援する", delegate { AppInfo.Open(AppInfo.SupportUrl); }));
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Theme.MenuItem("終了", delegate { ExitThread(); }));
+            // 「別の画像にする」は、今の時間帯がフォルダ指定のときだけ出す
+            menu.Opening += delegate
+            {
+                var active = Scheduler.GetActive(settings.Entries, DateTime.Now);
+                shuffleItem.Visible = active != null && active.IsFolder && FolderImages.Count(active.FolderPath) > 1;
+            };
 
             tray = new NotifyIcon { Icon = trayIcon, ContextMenuStrip = menu, Text = "壁紙スケジューラ", Visible = true };
             tray.MouseClick += delegate(object s, MouseEventArgs e) { if (e.Button == MouseButtons.Left) ShowSettings(); };
@@ -116,11 +125,35 @@ namespace WallpaperScheduler
             Check(false);
         }
 
+        /// 今の時間帯（フォルダ指定）の画像を、別の画像に選び直して適用する
+        void Reshuffle()
+        {
+            var active = Scheduler.GetActive(settings.Entries, DateTime.Now);
+            if (active == null || !active.Reshuffle(DateTime.Now)) return;
+            TrySave();
+            RefreshForm();
+            Check(true);
+        }
+
+        void RefreshForm()
+        {
+            if (form != null && !form.IsDisposed) form.RefreshStatus();
+        }
+
         void Check(bool force)
         {
             if (!settings.Paused || force)
             {
-                var active = Scheduler.GetActive(settings.Entries, DateTime.Now);
+                var now = DateTime.Now;
+                var active = Scheduler.GetActive(settings.Entries, now);
+                // フォルダ指定なら、時間帯が始まったときに画像を選ぶ（選んだ画像は設定に残す）
+                if (active != null && active.EnsurePicked(now))
+                {
+                    TrySave();
+                    RefreshForm();
+                }
+                // フォルダが見つからない・画像が無いときは、壁紙を変えずにカードで知らせる
+                if (active != null && active.IsFolder && !File.Exists(active.ImagePath)) active = null;
                 if (active != null)
                 {
                     string key = active.Time + "|" + active.ImagePath + "|" + settings.Style;
@@ -171,6 +204,7 @@ namespace WallpaperScheduler
                 Check(false);
             };
             form.ApplyNowRequested += delegate { Check(true); };
+            form.ShuffleRequested += delegate { Reshuffle(); };
             var thisForm = form;
             form.FormClosed += delegate { if (form == thisForm) form = null; thisForm.Dispose(); };
             form.Show();
