@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>壁紙スケジューラ｜時刻で Windows の壁紙を自動で切り替える無料ソフト</title>
-<meta name="description" content="指定した時刻に Windows の壁紙を自動で切り替えるフリーソフト。朝は朝焼け、昼は青空、夜は星空と、時間帯に合わせて壁紙が変わります。Windows 10 / 11 対応、インストール不要・無料。">
+<meta name="description" content="指定した時刻に Windows の壁紙を自動で切り替えるフリーソフト。朝は朝焼け、昼は青空、夜は星空と、時間帯に合わせて壁紙が変わります。フォルダの画像をランダムに表示することもできます。Windows 10 / 11 対応、インストール不要・無料。">
 <link rel="canonical" href="https://woy74237-ship-it.github.io/wallpaper-scheduler/">
 <meta name="google-site-verification" content="pBzGE_gBY6l3MEEjUAHbipjkt_8g54LIp9FQqhVdmNU">
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
@@ -276,9 +276,9 @@
           <p>どの時間帯にどの壁紙になるかを、各画像の色でひと目で確認できます。</p>
         </div>
         <div class="feature">
-          <div class="icon" aria-hidden="true">🖱️</div>
-          <h3>ドラッグ＆ドロップで登録</h3>
-          <p>画像を画面に落とすだけ。時刻は大きな数字とショートカットで直感的に選べます。</p>
+          <div class="icon" aria-hidden="true">🔀</div>
+          <h3>フォルダからランダムに</h3>
+          <p>画像の代わりにフォルダを登録すると、時間帯ごとにランダムな画像に。全部を一巡するまで同じ画像は出ません。</p>
         </div>
         <div class="feature">
           <div class="icon" aria-hidden="true">🌙</div>
@@ -311,7 +311,7 @@
           </li>
           <li>
             <h3>時刻と画像を登録</h3>
-            <p>「追加」を押して、切り替える時刻と画像を選びます。画像を画面にドラッグしても登録できます。</p>
+            <p>「追加」を押して、切り替える時刻と画像（またはフォルダ）を選びます。画像やフォルダを画面にドラッグしても登録できます。</p>
           </li>
           <li>
             <h3>あとは放っておくだけ</h3>
@@ -338,6 +338,14 @@
         <details>
           <summary>起動しているのに、アイコンが見当たりません</summary>
           <p>Windows 11 では、新しいアプリのアイコンは最初、タスクバー右側の「^」の中に隠れています。タスクバーを右クリック →「タスクバーの設定」→「その他のシステム トレイ アイコン」で「壁紙スケジューラ」をオンにすると、常に表示されます。なお、Windows の起動時に自動で立ち上がったときは画面を出さずにトレイで動き、exe をダブルクリックしたときは設定画面が開きます。</p>
+        </details>
+        <details>
+          <summary>フォルダの中の画像を、ランダムに表示できますか？</summary>
+          <p>できます（v1.4 以降）。追加・編集の画面で「フォルダから選ぶ」を押すか、フォルダをドラッグして登録すると、その時間帯が始まるたびにフォルダの中から画像をランダムに選びます。フォルダの画像を全部 1 回ずつ表示し終えるまで、同じ画像は出ません。表示中の画像が気分に合わないときは、設定画面のシャッフルボタンかタスクトレイの「別の画像にする」で選び直せます。</p>
+        </details>
+        <details>
+          <summary>新しいバージョンに更新するには？</summary>
+          <p>タスクトレイのアイコンを右クリックして「終了」し、今使っているフォルダーの <code>WallpaperScheduler.exe</code> を新しい exe で上書きしてください。設定と自動起動はそのまま引き継がれます。別のフォルダーに展開した場合は、新しい exe の設定画面で「Windows の起動時に開始」を一度オフにしてから、もう一度オンにしてください。</p>
         </details>
         <details>
           <summary>料金はかかりますか？</summary>
