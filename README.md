@@ -17,7 +17,7 @@
 
 ## 開発の支援
 
-無料でお使いいただけます。気に入っていただけたら、[OFUSE](https://ofuse.me/c0fdccc4) から応援していただけるとうれしいです。
+無料でお使いいただけます。気に入っていただけたら、[OFUSE](https://ofuse.me/c0fdccc4) から応援していただけるとうれしいです（海外からは [Ko-fi](https://ko-fi.com/waltowen404923) もご利用いただけます）。
 「こんな機能がほしい」といった要望も、[Issues](https://github.com/woy74237-ship-it/wallpaper-scheduler/issues) でお待ちしています。
 
 ## ビルド
