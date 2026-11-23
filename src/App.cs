@@ -46,7 +46,7 @@ namespace WallpaperScheduler
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Theme.MenuItem("このアプリについて", delegate { ShowAbout(); }));
             if (AppInfo.HasSupport)
-                menu.Items.Add(Theme.MenuItem("開発を支援する", delegate { AppInfo.Open(AppInfo.SupportUrl); }));
+                menu.Items.Add(AppInfo.SupportMenuItem());
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(Theme.MenuItem("終了", delegate { ExitThread(); }));
             // 「別の画像にする」は、今の時間帯がフォルダ指定のときだけ出す

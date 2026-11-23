@@ -178,7 +178,7 @@ namespace WallpaperScheduler
             if (AppInfo.HasSupport)
             {
                 var support = Footer.Add("開発を支援する", ButtonKind.Primary, DialogResult.None, Glyphs.Heart);
-                support.Click += delegate { AppInfo.Open(AppInfo.SupportUrl); };
+                support.Click += delegate { AppInfo.ShowSupportMenu(support); };
             }
             if (AppInfo.HasWebsite)
             {

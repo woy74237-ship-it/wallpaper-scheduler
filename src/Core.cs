@@ -32,6 +32,33 @@ namespace WallpaperScheduler
 
         public static bool HasSupport { get { return IsWebUrl(SupportUrl); } }
         public static bool HasWebsite { get { return IsWebUrl(WebsiteUrl); } }
+        // 応援先（OFUSE / Ko-fi）。OFUSE はファンレターを書く形なので、気軽に応援したい人向けに Ko-fi も選べるようにする
+        public const string KofiUrl = "https://ko-fi.com/waltowen404923";
+        const string OfuseItem = "OFUSE で応援する（メッセージを添えて・円）";
+        const string KofiItem = "Ko-fi で応援する（ワンクリック・ドル）";
+
+        /// タスクトレイ用: 「開発を支援する」のサブメニュー（OFUSE / Ko-fi）
+        public static ToolStripMenuItem SupportMenuItem()
+        {
+            var item = Theme.MenuItem("開発を支援する", null);
+            var drop = new ContextMenuStrip();
+            Theme.StyleMenu(drop);
+            item.DropDown = drop;
+            item.DropDownItems.Add(Theme.MenuItem(OfuseItem, delegate { Open(SupportUrl); }));
+            item.DropDownItems.Add(Theme.MenuItem(KofiItem, delegate { Open(KofiUrl); }));
+            return item;
+        }
+
+        /// ボタン用: ボタンの下に OFUSE / Ko-fi を選ぶメニューを出す
+        public static void ShowSupportMenu(Control anchor)
+        {
+            var menu = new ContextMenuStrip();
+            Theme.StyleMenu(menu);
+            menu.Items.Add(Theme.MenuItem(OfuseItem, delegate { Open(SupportUrl); }));
+            menu.Items.Add(Theme.MenuItem(KofiItem, delegate { Open(KofiUrl); }));
+            menu.Closed += delegate { anchor.BeginInvoke((MethodInvoker)menu.Dispose); };
+            menu.Show(anchor, new System.Drawing.Point(0, anchor.Height));
+        }
 
         public static string Version
         {
