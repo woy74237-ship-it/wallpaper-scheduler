@@ -15,9 +15,9 @@ using Microsoft.Win32;
 [assembly: System.Reflection.AssemblyTitle("壁紙スケジューラ")]
 [assembly: System.Reflection.AssemblyDescription("指定した時刻に Windows の壁紙を切り替えるアプリ")]
 [assembly: System.Reflection.AssemblyProduct("壁紙スケジューラ")]
-[assembly: System.Reflection.AssemblyVersion("1.4.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.4.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.4.0")]
+[assembly: System.Reflection.AssemblyVersion("1.4.1.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.4.1.0")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.4.1")]
 
 namespace WallpaperScheduler
 {
