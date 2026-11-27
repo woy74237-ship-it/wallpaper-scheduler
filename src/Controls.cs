@@ -310,7 +310,7 @@ namespace WallpaperScheduler
             }
 
             // 現在時刻のマーカー
-            float nx = X(DateTime.Now.TimeOfDay.TotalMinutes);
+            float nx = X(Clock.Now.TimeOfDay.TotalMinutes);
             var marker = new RectangleF(nx - Theme.Sf(2.5f), top - Theme.Sf(4), Theme.Sf(5), barH + Theme.Sf(8));
             using (var p = Theme.Round(marker, Theme.Sf(2.5f)))
             using (var pen = new Pen(BackColor, Theme.Sf(2)))

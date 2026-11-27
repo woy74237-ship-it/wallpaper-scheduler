@@ -65,6 +65,8 @@
 
 紹介ページは `site/` にあり、main ブランチに push すると GitHub Actions（`.github/workflows/pages.yml`）で
 GitHub Pages に公開されます。ページ用の画像は `.\tools\make-site-assets.ps1` で `site/images/` に生成します。
+スクリーンショット（`docs/images/main.png`・`edit.png`）は `.\tools\make-screenshots.ps1` で撮ります。
+画面の時刻を 14:12 に固定し（`-At 21:30` のように変えられます）、窓だけを撮るので、いつ実行しても同じ見た目で、背景も写り込みません。
 
 ## 使い方
 

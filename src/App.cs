@@ -52,7 +52,7 @@ namespace WallpaperScheduler
             // 「別の画像にする」は、今の時間帯がフォルダ指定のときだけ出す
             menu.Opening += delegate
             {
-                var active = Scheduler.GetActive(settings.Entries, DateTime.Now);
+                var active = Scheduler.GetActive(settings.Entries, Clock.Now);
                 shuffleItem.Visible = active != null && active.IsFolder && FolderImages.Count(active.FolderPath) > 1;
             };
 
@@ -128,8 +128,8 @@ namespace WallpaperScheduler
         /// 今の時間帯（フォルダ指定）の画像を、別の画像に選び直して適用する
         void Reshuffle()
         {
-            var active = Scheduler.GetActive(settings.Entries, DateTime.Now);
-            if (active == null || !active.Reshuffle(DateTime.Now)) return;
+            var active = Scheduler.GetActive(settings.Entries, Clock.Now);
+            if (active == null || !active.Reshuffle(Clock.Now)) return;
             TrySave();
             RefreshForm();
             Check(true);
@@ -144,7 +144,7 @@ namespace WallpaperScheduler
         {
             if (!settings.Paused || force)
             {
-                var now = DateTime.Now;
+                var now = Clock.Now;
                 var active = Scheduler.GetActive(settings.Entries, now);
                 // フォルダ指定なら、時間帯が始まったときに画像を選ぶ（選んだ画像は設定に残す）
                 if (active != null && active.EnsurePicked(now))
@@ -178,7 +178,7 @@ namespace WallpaperScheduler
             if (settings.Paused) text += "\n自動切り替え停止中";
             else
             {
-                var next = Scheduler.GetNext(settings.Entries, DateTime.Now);
+                var next = Scheduler.GetNext(settings.Entries, Clock.Now);
                 text += next == null ? "\nスケジュール未設定" : "\n次の切り替え: " + next.Time;
             }
             tray.Text = text.Length > 63 ? text.Substring(0, 63) : text;

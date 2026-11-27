@@ -62,7 +62,7 @@ namespace WallpaperScheduler
             }
 
             int tx = tr.Right + Theme.S(20), tw = Width - tx - Theme.S(20);
-            var now = DateTime.Now;
+            var now = Clock.Now;
             Theme.DrawText(g, Paused ? "現在の壁紙  ·  自動切り替えは停止中" : "現在の壁紙", Theme.Small, Theme.FgDim,
                 new Rectangle(tx, Theme.S(16), tw, Theme.S(20)), Theme.Left);
 
@@ -302,7 +302,7 @@ namespace WallpaperScheduler
 
         public void RefreshStatus()
         {
-            var now = DateTime.Now;
+            var now = Clock.Now;
             var active = Scheduler.GetActive(settings.Entries, now);
             header.Active = active;
             header.Next = Scheduler.GetNext(settings.Entries, now);

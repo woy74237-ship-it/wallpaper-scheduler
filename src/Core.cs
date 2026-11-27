@@ -83,6 +83,15 @@ namespace WallpaperScheduler
         }
     }
 
+    /// 今の時刻。アプリの中で時刻を読むときは、すべてここを通す。
+    /// ふだんはパソコンの時計そのまま。スクリーンショットのツール（tools\Screenshots.cs）だけが、
+    /// 決まった時刻の画面を撮るために差し替える。
+    public static class Clock
+    {
+        public static Func<DateTime> Source = () => DateTime.Now;
+        public static DateTime Now { get { return Source(); } }
+    }
+
     [DataContract]
     public class ScheduleEntry
     {
